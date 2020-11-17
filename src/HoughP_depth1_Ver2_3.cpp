@@ -126,9 +126,9 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
          std::cout <<"pt1["<<i<<"]("<<lines[i][0]<<","<<lines[i][1]<<","<<dep1<<")"<< std::endl;
          std::cout <<"pt2["<<i<<"]("<<lines[i][2]<<","<<lines[i][3]<<","<<dep2<<")"<< std::endl;
 
-         //確率的ハフ変換線の傾きを求める
-         //l[i]=abs((lines[i][1]-lines[i][3])/(lines[i][0]-lines[i][2]));
-         //std::cout <<"確率的ハフ変換の傾きl["<<i<<"]("<<l[i]<< std::endl;
+         //確率的ハフ変換線のy軸との角度を求める
+         l[i]=atan2((lines[i][2]-lines[i][0]),(lines[i][3]-lines[i][1]));
+         std::cout <<"確率的ハフ変換の傾きl["<<i<<"]("<<l[i]<< std::endl;
         }
     }
 
@@ -144,6 +144,19 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
         cv::line(img_dst2,cv::Point(pt1x,pt1y), cv::Point(pt2x,pt2y), cv::Scalar(0,255,0), 2, cv::LINE_AA);  
     }
+        double rho = 50, theta = 3.14;
+        double a = cos(theta), b = sin(theta);
+        double x0 = a*rho, y0 = b*rho;
+        double pt1x,pt1y,pt2x,pt2y;
+        pt1x = x0 - img_dst2.cols*b ,pt1y = y0 + img_dst2.cols*a;
+        pt2x = x0 + img_dst2.cols*b ,pt2y = y0 - img_dst2.cols*a;
+
+        cv::line(img_dst2,cv::Point(pt1x,pt1y), cv::Point(pt2x,pt2y), cv::Scalar(0,255,0), 8, cv::LINE_AA); 
+
+        
+
+
+
 
     //標準的ハフ変換2(lines1)(確率的ハフ変換で求めた画像に対して標準的ハフ変換を行う)
     cv::Canny(img_line, img_line1, 200, 200);

@@ -222,6 +222,9 @@ include_directories(
 add_executable(Hough src/Hough.cpp)
 target_link_libraries(Hough ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+add_executable(Hough_test src/Hough_test.cpp)
+target_link_libraries(Hough_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
 add_executable(Hough_camera src/Hough_camera.cpp)
 target_link_libraries(Hough_camera ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
@@ -245,6 +248,9 @@ target_link_libraries(HoughP_depth1_Ver2_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIE
 
 add_executable(HoughP_depth1_Ver2_2 src/HoughP_depth1_Ver2_2.cpp)
 target_link_libraries(HoughP_depth1_Ver2_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(HoughP_depth1_Ver2_3 src/HoughP_depth1_Ver2_3.cpp)
+target_link_libraries(HoughP_depth1_Ver2_3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(testH src/testH.cpp)
 target_link_libraries(testH ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

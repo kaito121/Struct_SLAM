@@ -66,32 +66,75 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
     cv::HoughLinesP(img_edge, lines, 1, CV_PI/180, 80,30,10);
     
     for(int i = 0; i < lines.size(); i++){
-       cv::line(img_dst,
-            cv::Point(lines[i][0],lines[i][1]),
-            cv::Point(lines[i][2],lines[i][3]),
-            cv::Scalar(0,0,255), 4, cv::LINE_AA);  
+       cv::line(img_dst,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);  
+       cv::line(img_dst,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 2, cv::LINE_AA);  
     }
 
-    for(int i = 0; i < lines1.size(); i++){
+    /*for(int i = 0; i < lines1.size(); i++){
         double rho = lines1[i][0], theta = lines1[i][1];
         double a = cos(theta), b = sin(theta);
         double x0 = a*rho, y0 = b*rho;
         double pt1x,pt1y,pt2x,pt2y;
         pt1x = x0 - img_dst.cols*b ,pt1y = y0 + img_dst.cols*a;
         pt2x = x0 + img_dst.cols*b ,pt2y = y0 - img_dst.cols*a;
-
-        std::cout <<"ライン"<<i<< std::endl;
-        std::cout <<"pt1x["<<i<<"]="<<pt1x<< std::endl;
-        std::cout <<"pt1y["<<i<<"]="<<pt1y<< std::endl;
-        std::cout <<"pt2x["<<i<<"]="<<pt2x<< std::endl;
-        std::cout <<"pt2y["<<i<<"]="<<pt2y<< std::endl;
-        std::cout <<"pt1["<<i<<"]("<<pt1x<<","<<pt1y<<")"<< std::endl;
-        std::cout <<"pt2["<<i<<"]("<<pt2x<<","<<pt2y<<")"<< std::endl;
         
-
         cv::line(img_dst,cv::Point(pt1x,pt1y),cv::Point(pt2x,pt2y),cv::Scalar(0,255,0), 2, cv::LINE_AA);  
 
-    }
+    }*/
+
+        double rho = 0, theta = 3.14/2;
+        double a = cos(theta), b = sin(theta);
+        double x0 = a*rho, y0 = b*rho;
+        double pt1x,pt1y,pt2x,pt2y;
+        pt1x = x0 - img_dst.cols*b ,pt1y = y0 + img_dst.cols*a;
+        pt2x = x0 + img_dst.cols*b ,pt2y = y0 - img_dst.cols*a;
+        
+        cv::line(img_dst,cv::Point(pt1x,pt1y),cv::Point(pt2x,pt2y),cv::Scalar(0,255,0), 8, cv::LINE_AA);  //緑
+
+        double rho1 = 0, theta1 = 0;
+        double a1 = cos(theta1), b1 = sin(theta1);
+        double x01 = a1*rho1, y01 = b1*rho1;
+        double pt1x1,pt1y1,pt2x1,pt2y1;
+        pt1x1 = x01 - img_dst.cols*b1 ,pt1y1 = y01 + img_dst.cols*a1;
+        pt2x1 = x01 + img_dst.cols*b1 ,pt2y1 = y01 - img_dst.cols*a1;
+        
+        cv::line(img_dst,cv::Point(pt1x1,pt1y1),cv::Point(pt2x1,pt2y1),cv::Scalar(0,0,255), 8, cv::LINE_AA); //赤 
+
+        double rho2 = 100, theta2 = 3.14/2;
+        double a2 = cos(theta2), b2 = sin(theta2);
+        double x02 = a2*rho2, y02 = b2*rho2;
+        double pt1x2,pt1y2,pt2x2,pt2y2;
+        pt1x2 = x02 - img_dst.cols*b2 ,pt1y2 = y02 + img_dst.cols*a2;
+        pt2x2 = x02 + img_dst.cols*b2 ,pt2y2 = y02 - img_dst.cols*a2;
+        
+        cv::line(img_dst,cv::Point(pt1x2,pt1y2),cv::Point(pt2x2,pt2y2),cv::Scalar(255,0,0), 8, cv::LINE_AA);  //青
+
+        double rho3 = 100, theta3 = 0;
+        double a3 = cos(theta3), b3 = sin(theta3);
+        double x03 = a3*rho3, y03 = b3*rho3;
+        double pt1x3,pt1y3,pt2x3,pt2y3;
+        pt1x3 = x03 - img_dst.cols*b3 ,pt1y3 = y03 + img_dst.cols*a3;
+        pt2x3 = x03 + img_dst.cols*b3 ,pt2y3 = y03 - img_dst.cols*a3;
+        
+        cv::line(img_dst,cv::Point(pt1x3,pt1y3),cv::Point(pt2x3,pt2y3),cv::Scalar(255,255,255), 8, cv::LINE_AA); //白
+
+        double rho4 = 100*sqrt(2), theta4 = 3.14/4;
+        double a4 = cos(theta4), b4 = sin(theta4);
+        double x04 = a4*rho4, y04 = b4*rho4;
+        double pt1x4,pt1y4,pt2x4,pt2y4;
+        pt1x4 = x04 - img_dst.cols*b4 ,pt1y4 = y04 + img_dst.cols*a4;
+        pt2x4 = x04 + img_dst.cols*b4 ,pt2y4 = y04 - img_dst.cols*a4;
+        
+        cv::line(img_dst,cv::Point(pt1x4,pt1y4),cv::Point(pt2x4,pt2y4),cv::Scalar(0,255,255), 8, cv::LINE_AA); //黄色
+
+        double rho5 = -100, theta5 = 3.14/4+3.14/2;
+        double a5 = cos(theta5), b5 = sin(theta5);
+        double x05 = a5*rho5, y05 = b5*rho5;
+        double pt1x5,pt1y5,pt2x5,pt2y5;
+        pt1x5 = x05 - img_dst.cols*b5 ,pt1y5 = y05 + img_dst.cols*a5;
+        pt2x5 = x05 + img_dst.cols*b5 ,pt2y5 = y05 - img_dst.cols*a5;
+        
+        cv::line(img_dst,cv::Point(pt1x5,pt1y5),cv::Point(pt2x5,pt2y5),cv::Scalar(255,0,255), 8, cv::LINE_AA);  //紫
 
 
     std::cout <<"for文終了"<< std::endl;
