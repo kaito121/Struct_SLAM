@@ -1,0 +1,5 @@
+<launch>
+	<node name="talker" pkg="struct_slam" type="basic_simple_talker"/>
+	<node name="listener1" pkg="struct_slam" type="basic_simple_listener" output="screen"/>
+	<node name="listener2" pkg="struct_slam" type="basic_simple_listener" output="screen"/>
+</launch>

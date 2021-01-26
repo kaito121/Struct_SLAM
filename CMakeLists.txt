@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(Struct_SLAM)
+project(struct_slam)
 
 set(CMAKE_BUILD_TYPE Debug)
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -11,6 +11,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rospy
   sensor_msgs
   cv_bridge
   message_filters
@@ -20,10 +21,13 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   message_generation
   sensor_msgs
-  
+  tf
 )
 
 find_package(OpenCV REQUIRED)
+find_package(PCL REQUIRED)
+
+##link_directories(${PCL_LIBRARY_DIRS})
 
 
 ## System dependencies are found with CMake's conventions
@@ -60,11 +64,16 @@ find_package(OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+   FILES
+   plm.msg
+   plm0.msg
+   waku.msg
+   wakuhairetu.msg
+   ImageMatchingData.msg
+   MaskImageData.msg
+   ImageFlow2D.msg
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -81,10 +90,12 @@ find_package(OpenCV REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   std_msgs 
+   geometry_msgs 
+   sensor_msgs   # Or other packages containing msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -101,10 +112,11 @@ find_package(OpenCV REQUIRED)
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+ generate_dynamic_reconfigure_options(
+   cfg/Depth_pcl.cfg
+   cfg/imageMatching.cfg
+ )
+
 
 ###################################
 ## catkin specific configuration ##
@@ -116,7 +128,10 @@ find_package(OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+
+CATKIN_DEPENDS roscpp sensor_msgs message_runtime 
+
+
 #  LIBRARIES Struct_SLAM
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
@@ -132,7 +147,10 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
+
+##link_directories(${PCL_LIBRARY_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -252,8 +270,133 @@ target_link_libraries(HoughP_depth1_Ver2_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIE
 add_executable(HoughP_depth1_Ver2_3 src/HoughP_depth1_Ver2_3.cpp)
 target_link_libraries(HoughP_depth1_Ver2_3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+add_executable(HoughP_depth1_Ver3 src/HoughP_depth1_Ver3.cpp)
+target_link_libraries(HoughP_depth1_Ver3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(testtest src/testtest.cpp)
+target_link_libraries(testtest ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+
 add_executable(testH src/testH.cpp)
 target_link_libraries(testH ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(testH_ver2 src/testH_ver2.cpp)
 target_link_libraries(testH_ver2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(testH_ver3 src/testH_ver3.cpp)
+target_link_libraries(testH_ver3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(test_pcl src/test_pcl.cpp)
+target_link_libraries(test_pcl ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(pcl src/pcl.cpp)
+target_link_libraries(pcl ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+
+
+add_executable(depth_pcl4_20201127 src/depth_pcl4_20201127.cpp)
+add_dependencies(depth_pcl4_20201127 ${PROJECT_NAME}_gencfg)
+add_dependencies(depth_pcl4_20201127 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(depth_pcl4_20201127 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(depth_pcl4_sub_20201127 src/depth_pcl4_sub_20201127.cpp)
+add_dependencies(depth_pcl4_sub_20201127 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(depth_pcl4_sub_20201127 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(HoughP_pcl5 src/HoughP_pcl5.cpp)
+add_dependencies(HoughP_pcl5 ${PROJECT_NAME}_gencfg)
+add_dependencies(HoughP_pcl5 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(HoughP_pcl5 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(HoughP_pcl5_sub src/HoughP_pcl5_sub.cpp)
+add_dependencies(HoughP_pcl5_sub ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(HoughP_pcl5_sub ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+
+add_executable(test_pcl1 src/test_pcl1.cpp)
+add_dependencies(test_pcl1 ${PROJECT_NAME}_gencfg)
+add_dependencies(test_pcl1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_pcl1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(test_cl src/test_cl.cpp)
+add_dependencies(test_cl ${PROJECT_NAME}_gencfg)
+add_dependencies(test_cl ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_cl ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(basic_simple_talker src/basic_simple_talker.cpp)
+target_link_libraries(basic_simple_talker ${catkin_LIBRARIES})
+
+add_executable(basic_simple_talker1 src/basic_simple_talker1.cpp)
+target_link_libraries(basic_simple_talker1 ${catkin_LIBRARIES})
+
+add_executable(basic_simple_listener src/basic_simple_listener.cpp)
+target_link_libraries(basic_simple_listener ${catkin_LIBRARIES})
+
+add_executable(info_marker_publisher1 src/info_marker_publisher1.cpp)
+target_link_libraries(info_marker_publisher1 ${catkin_LIBRARIES})
+
+add_executable(points_and_lines src/points_and_lines.cpp)
+target_link_libraries(points_and_lines ${catkin_LIBRARIES})
+
+add_executable(lines src/lines.cpp)
+target_link_libraries(lines ${catkin_LIBRARIES})
+
+add_executable(lines_hough src/lines_hough.cpp)
+add_dependencies(lines_hough ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_hough ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_hough ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210125_test_file
+add_executable(lines_hough_test src/lines_hough_test.cpp)
+add_dependencies(lines_hough_test ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_hough_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_hough_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(carib src/carib.cpp)
+target_link_libraries(carib ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(srccap src/srccap.cpp)
+target_link_libraries(srccap ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(findessential src/findessential.cpp)
+target_link_libraries(findessential ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(findessential2 src/findessential2.cpp)
+target_link_libraries(findessential2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(findessential3 src/findessential3.cpp)
+target_link_libraries(findessential3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(findessential3_2 src/findessential3_2.cpp)
+target_link_libraries(findessential3_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#add_executable(findessential4 src/findessential4.cpp)
+#target_link_libraries(findessential4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#add_executable(SfM src/smp/SfM.cpp)
+#target_link_libraries(SfM ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(${PROJECT_NAME}_im # image matching
+   src/imageMatching/constructor.cpp
+   src/imageMatching/methods.cpp
+   src/imageMatching/debug_main.cpp
+   src/imageMatching/debug_methods.cpp
+   src/imageMatching/property.cpp
+src/imageMatching/property.cpp
+ )
+add_dependencies(${PROJECT_NAME}_im ${TARGET_NAME}${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME}_im ${PROJECT_NAME}_gencfg)
+target_link_libraries(${PROJECT_NAME}_im ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}) # image matching
+
+#20210121
+add_executable(lines_prm src/lines_prm.cpp)
+add_dependencies(lines_prm ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210125
+add_executable(lines_prm2 src/lines_prm2.cpp)
+add_dependencies(lines_prm2 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+

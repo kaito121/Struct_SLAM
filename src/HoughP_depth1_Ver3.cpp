@@ -80,16 +80,15 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     cv::Mat img_gray,img_edge,img_dst,img_dst2;
     cv::Mat img_line,img_line1;
 
-    
-
     img_src.copyTo(img_dst);
     img_src.copyTo(img_dst2);
+    
     cv::cvtColor(img_src, img_gray, cv::COLOR_RGB2GRAY);
 
     cv::Canny(img_gray, img_edge, 200, 200);
 
-    float dep,dep1,dep2;
-    double l[100];
+    float dep,dep1[100],dep2[100];
+    double theta[100];
     
     //ラインだけの画像を作るために単色で塗りつぶした画像を用意する
     img_line = img_src.clone();
@@ -105,78 +104,62 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
     //確率的ハフ変換座標と三次元距離データの結合と画像描写
     for(int i = 0; i < lines.size(); i++){
-        dep1= img_depth.at<float>(lines[i][0],lines[i][1]);//点の三次元距離データ取得
-        dep2= img_depth.at<float>(lines[i][2],lines[i][3]);
+        dep1[i]= img_depth.at<float>(lines[i][0],lines[i][1]);//点の三次元距離データ取得
+        dep2[i]= img_depth.at<float>(lines[i][2],lines[i][3]);
 
-        if(dep1>0 && dep2>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
-          dep= dep1 - dep2;
+        if(dep1[i]>0 && dep2[i]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
+          dep= dep1[i] - dep2[i];
           if(abs(dep)<500){//2点の三次元距離の差が500(50cm)以下だった場合水平か垂直の線
              //img_lineは確率的ハフ変換のラインのみの画像
              cv::line(img_dst,cv::Point(lines[i][0],lines[i][1]), cv::Point(lines[i][2],lines[i][3]), cv::Scalar(0,0,255), 4, cv::LINE_AA);
-             cv::line(img_line,cv::Point(lines[i][0],lines[i][1]), cv::Point(lines[i][2],lines[i][3]), cv::Scalar(0,0,255), 4, cv::LINE_AA);   
+             //cv::line(img_line,cv::Point(lines[i][0],lines[i][1]), cv::Point(lines[i][2],lines[i][3]), cv::Scalar(0,0,255), 4, cv::LINE_AA);   
             }
           else{
              cv::line(img_dst,cv::Point(lines[i][0],lines[i][1]), cv::Point(lines[i][2],lines[i][3]), cv::Scalar(0,255,255), 4, cv::LINE_AA);
-             cv::line(img_line,cv::Point(lines[i][0],lines[i][1]), cv::Point(lines[i][2],lines[i][3]), cv::Scalar(0,0,255), 4, cv::LINE_AA);  
+             //cv::line(img_line,cv::Point(lines[i][0],lines[i][1]), cv::Point(lines[i][2],lines[i][3]), cv::Scalar(0,0,255), 4, cv::LINE_AA);  
             }
 
           cv::circle(img_dst,Point(lines[i][0],lines[i][1]),10,Scalar(255,0,0),-1);//青点
           cv::circle(img_dst,Point(lines[i][2],lines[i][3]),10,Scalar(0,255,0),-1);//緑点
 
-         std::cout <<"pt1["<<i<<"]("<<lines[i][0]<<","<<lines[i][1]<<","<<dep1<<")"<< std::endl;
-         std::cout <<"pt2["<<i<<"]("<<lines[i][2]<<","<<lines[i][3]<<","<<dep2<<")"<< std::endl;
+         std::cout <<"pt1["<<i<<"]("<<lines[i][0]<<","<<lines[i][1]<<","<<dep1[i]<<")"<< std::endl;
+         std::cout <<"pt2["<<i<<"]("<<lines[i][2]<<","<<lines[i][3]<<","<<dep2[i]<<")"<< std::endl;
 
          //確率的ハフ変換線のy軸との角度を求める
-         l[i]=M_PI-atan2((lines[i][2]-lines[i][0]),(lines[i][3]-lines[i][1]));
-         std::cout <<"確率的ハフ変換の傾きl["<<i<<"]("<<l[i]<< std::endl;
+         theta[i]=M_PI-atan2((lines[i][2]-lines[i][0]),(lines[i][3]-lines[i][1]));
+         std::cout <<"確率的ハフ変換の傾きl["<<i<<"]("<<theta[i]<< std::endl;
         }
     }
 
 
-    //標準的ハフ変換１(元画像・lines0)
-    for(int i = 0; i < lines0.size(); i++){
-        double rho = lines0[i][0], theta = lines0[i][1];
-        double a = cos(theta), b = sin(theta);
-        double x0 = a*rho, y0 = b*rho;
-        double pt1x,pt1y,pt2x,pt2y;
-        pt1x = x0 - img_dst2.cols*b ,pt1y = y0 + img_dst2.cols*a;
-        pt2x = x0 + img_dst2.cols*b ,pt2y = y0 - img_dst2.cols*a;
-
-        cv::line(img_dst2,cv::Point(pt1x,pt1y), cv::Point(pt2x,pt2y), cv::Scalar(0,255,0), 2, cv::LINE_AA);  
-    }
-        double rho = 50, theta = 3.14;
-        double a = cos(theta), b = sin(theta);
-        double x0 = a*rho, y0 = b*rho;
-        double pt1x,pt1y,pt2x,pt2y;
-        pt1x = x0 - img_dst2.cols*b ,pt1y = y0 + img_dst2.cols*a;
-        pt2x = x0 + img_dst2.cols*b ,pt2y = y0 - img_dst2.cols*a;
-
-        cv::line(img_dst2,cv::Point(pt1x,pt1y), cv::Point(pt2x,pt2y), cv::Scalar(0,255,0), 8, cv::LINE_AA); 
-
-        
-
-
-
-
-    //標準的ハフ変換2(lines1)(確率的ハフ変換で求めた画像に対して標準的ハフ変換を行う)
-    cv::Canny(img_line, img_line1, 200, 200);
-    std::vector<cv::Vec2f> lines1;
-    cv::HoughLines(img_line1, lines1, 1, CV_PI/180, 120);
-
-    std::cout <<"lines1.size= "<<lines1.size()<< std::endl;
-
  /* thetaの数値を小さいにソート */
-  double tmp0,tmp1;
-  for (int i=0; i<=lines1.size(); ++i) {
-     for (int j=i+1;j<lines1.size(); ++j) {
-         if (lines1[i][1] > lines1[j][1]) {
-             tmp1 =  lines1[i][1];
-             tmp0 =  lines1[i][0];
+  double tmp,tmp1x,tmp1y,tmp2x,tmp2y,tmpdep1,tmpdep2;
+  for (int i=0; i<=lines.size(); ++i) {
+     for (int j=i+1;j<lines.size(); ++j) {
+         if (theta[i] > theta[j]) {
+             tmp =  theta[i];
+             tmp1x =  lines[i][0];
+             tmp1y =  lines[i][1];
+             tmp2x =  lines[i][2];
+             tmp2y =  lines[i][3];
+             tmpdep1 = dep1[i];
+             tmpdep2 = dep2[i];
 
-             lines1[i][1] = lines1[j][1];
-             lines1[i][0] = lines1[j][0];
-             lines1[j][1] = tmp1;
-             lines1[j][0] = tmp0;
+             theta[i] = theta[j];
+             lines[i][0] = lines[j][0];
+             lines[i][1] = lines[j][1];
+             lines[i][2] = lines[j][2];
+             lines[i][3] = lines[j][3];
+             dep1[i] = dep1[j];
+             dep2[i] = dep2[j];
+
+             theta[j] = tmp;
+             lines[j][0] = tmp1x;
+             lines[j][1] = tmp1y;
+             lines[j][2] = tmp2x;
+             lines[j][3] = tmp2y;
+             dep1[j] = tmpdep1;
+             dep2[j] = tmpdep2;
             }
         }
     }
@@ -184,59 +167,87 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   //printf("昇順ソートした数値\n");
   //for (int i=0; i<lines1.size(); ++i){ printf("lines[%d][1]=%f\n", i,lines1[i][1]); }
     int c[20],t,j,p;
-    double A[20][20][2],B;
+    double A[20][20][2][4],B;
     c[0]=1,t=0,j=1,p=0;
 
-    if(lines1.size()>0){
-    A[0][0][0]=lines1[0][0];
-    A[0][0][1]=lines1[0][1];
-    B=lines1[0][1];}
+    if(lines.size()>0){
+    A[0][0][0][0]=lines[0][0];
+    A[0][0][0][1]=lines[0][1];
+    A[0][0][0][2]=dep1[0];
+    A[0][0][0][3]=theta[0];
+
+    A[0][0][1][0]=lines[0][2];
+    A[0][0][1][1]=lines[0][3];
+    A[0][0][1][2]=dep2[0];
+    A[0][0][1][3]=theta[0];
+    
+
+    B=theta[0];}
     std::cout <<"初期値B[0]= "<<B<< std::endl;
     std::cout <<"初期値C[0]= "<<c[0]<< std::endl;
 
     
     //グルーピング
-    for(int i = 0; i < lines1.size(); i++){
+    for(int i = 0; i < lines.size(); i++){
 
-        std::cout <<"lines1["<<i<<"][0]= "<<lines1[i][0]<< std::endl;
-        std::cout <<"lines1["<<i<<"][1]= "<<lines1[i][1]<< std::endl;
+        std::cout <<"lines["<<i<<"][0]= "<<lines[i][0]<< std::endl;
+        std::cout <<"lines["<<i<<"][1]= "<<lines[i][1]<< std::endl;
         std::cout <<"B["<<i<<"]= "<<B<< std::endl;
 
         //前の番号と同じ数値
-        if( B==lines1[i+1][1]){
-            std::cout <<"lines1["<<i+1<<"]= 同じ数値 "<< std::endl;
-            A[t][j][0]=lines1[i+1][0];//代入
-            A[t][j][1]=lines1[i+1][1];//代入
+        if( B==theta[i+1]){
+            std::cout <<"theta["<<i+1<<"]= 同じ数値 "<< std::endl;
+            A[t][j][0][0]=lines[i+1][0];//代入
+            A[t][j][0][1]=lines[i+1][1];//代入
+            A[t][j][0][2]=dep1[i+1];//代入
+            A[t][j][0][3]=theta[i+1];//代入
+            A[t][j][1][0]=lines[i+1][2];//代入
+            A[t][j][1][1]=lines[i+1][3];//代入
+            A[t][j][1][2]=dep2[i+1];//代入
+            A[t][j][1][3]=theta[i+1];//代入
             j=j+1;//配列カウント
             c[t]=c[t]+1;//要素数（同じ数値は何個あるか）
         }
         //前の番号と異なる数値
         else{
 
-          if(lines1[i+1][1]-B>0.5){//前の角度との差が0.5より大きい
-             std::cout <<"lines1["<<i+1<<"]= 異なる数値 "<< std::endl;
-             std::cout <<"lines1["<<i+1<<"][1]="<<lines1[i+1][1]<< std::endl;
+          if(theta[i+1]-B>0.3){//前の角度との差が0.5より大きい
+             std::cout <<"theta["<<i+1<<"]= 異なる数値 "<< std::endl;
+             std::cout <<"theta["<<i+1<<"]="<<theta[i+1]<< std::endl;
              std::cout <<"B="<<B<< std::endl;
-             std::cout <<"lines1[i+1][1]-B="<<lines1[i+1][1]-B<< std::endl;
+             std::cout <<"theta[i+1]-B="<<theta[i+1]-B<< std::endl;
         
              t=t+1,j=0;//配列繰り上がり、ｊリセット
-             A[t][j][0]=lines1[i+1][0];//代入
-             A[t][j][1]=lines1[i+1][1];//代入
-             B=lines1[i+1][1];//基準の更新
+             A[t][j][0][0]=lines[i+1][0];//代入
+             A[t][j][0][1]=lines[i+1][1];//代入
+             A[t][j][0][2]=dep1[i+1];//代入
+             A[t][j][0][3]=theta[i+1];//代入
+             A[t][j][1][0]=lines[i+1][2];//代入
+             A[t][j][1][1]=lines[i+1][3];//代入
+             A[t][j][1][2]=dep2[i+1];//代入
+             A[t][j][1][3]=theta[i+1];//代入
+             B=theta[i+1];//基準の更新
              j=j+1;//配列カウント
              c[t]=0;//配列要素数初期値
             }
 
           else{//前の角度との差が0.5以下
-             std::cout <<"lines1["<<i+1<<"]= ちょっと違う数値= "<<lines1[i+1][1]-B<< std::endl;
-             A[t][j][0]=lines1[i+1][0];//代入
-             A[t][j][1]=lines1[i+1][1];//代入
-             B=lines1[i+1][1];//基準の更新
+             std::cout <<"theta["<<i+1<<"]= ちょっと違う数値= "<<theta[i+1]-B<< std::endl;
+             A[t][j][0][0]=lines[i+1][0];//代入
+             A[t][j][0][1]=lines[i+1][1];//代入
+             A[t][j][0][2]=dep1[i+1];//代入
+             A[t][j][0][3]=theta[i+1];//代入
+             A[t][j][1][0]=lines[i+1][2];//代入
+             A[t][j][1][1]=lines[i+1][3];//代入
+             A[t][j][1][2]=dep2[i+1];//代入
+             A[t][j][1][3]=theta[i+1];//代
+             B=theta[i+1];//基準の更新
              j=j+1;//配列カウント
              c[t]=c[t]+1;//要素数（同じ数値は何個あるか）
             }
         }
       std::cout <<"C["<<t+1<<"]="<< c[t] << std::endl;
+     
     } 
 
     //グルーピングチェック
@@ -244,24 +255,38 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         std::cout <<"チェックC["<<j<<"]= "<<c[j]<< std::endl;
         std::cout <<"チェックt= "<<t<< std::endl;
       for(int i=0;i<c[j];i++){
+          if(A[j][i][0][2]>0 && A[j][i][1][2]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
           //Aはthetaの数値セット
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1]= "<<A[j][i][1]<< std::endl;//A[グループ番号][個数番号][角度1or距離0]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0]= "<<A[j][i][0]<< std::endl;
 
-          double rho = A[j][i][0], theta = A[j][i][1];
-          double a = cos(theta), b = sin(theta);
-          double x0 = a*rho, y0 = b*rho;
-          double pt1x,pt1y,pt2x,pt2y,img_cols,img_rows;
+          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][0]= "<<A[j][i][0][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][1]= "<<A[j][i][0][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][2]= "<<A[j][i][0][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][3]= "<<A[j][i][0][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+
+          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][0]= "<<A[j][i][1][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][1]= "<<A[j][i][1][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][2]= "<<A[j][i][1][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][3]= "<<A[j][i][1][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+
           int R,G,B;
-          pt1x = x0 - img_line.cols*b ,pt1y = y0 + img_line.cols*a;
-          pt2x = x0 + img_line.cols*b ,pt2y = y0 - img_line.cols*a;
+          double ro,rox1,rox2;
+
+          ro=A[j][i][0][0]*cos(A[j][i][0][2])+A[j][i][0][1]*sin(A[j][i][0][2]);
+          rox1=ro-1000;
+          rox2=ro+1000;
+
           if(j==0){B=255,G=0,R=0;}
           if(j==1){B=0,G=255,R=0;}
           if(j==2){B=0,G=0,R=255;}
           if(j==3){B=255,G=0,R=255;}
 
-          cv::line(img_line,cv::Point(pt1x,pt1y),cv::Point(pt2x,pt2y),cv::Scalar(B,G,R), 2, cv::LINE_AA);      
-        }
+         if(lines.size()!=0){ 
+             cv::line(img_dst,cv::Point(A[j][i][0][0],A[j][i][0][1]), cv::Point(A[j][i][1][0],A[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
+             cv::line(img_line,cv::Point(A[j][i][0][0],A[j][i][0][1]), cv::Point(A[j][i][1][0],A[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
+             cv::line(img_line,cv::Point(rox1,1000), cv::Point(rox2,1000), cv::Scalar(B,G,R), 2, cv::LINE_AA);
+             }
+          
+        }}
     }
 
 

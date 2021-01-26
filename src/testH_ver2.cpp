@@ -54,11 +54,17 @@ int main(int argc, char **argv){
 
       } 
   }
-  
+  double k=10.3;
   for(j=0;j<=t;j++){
     std::cout <<"C["<<j<<"]= "<<c[j]<< std::endl;
       for(i=0;i<c[j];i++){  
           std::cout <<"A["<<j<<"]["<<i<<"]= "<<A[j][i]<< std::endl;
+          //std::cout <<"Amax["<<j<<"]["<<c[j]<<"]= "<<A[j][c[j]-1]<< std::endl;
+      }
+      std::cout <<"Amin["<<j<<"]["<<0<<"]= "<<A[j][0]<< std::endl;
+      std::cout <<"Amax["<<j<<"]["<<c[j]<<"]= "<<A[j][c[j]-1]<< std::endl;
+      if(A[j][0]<=k&&k<=A[j][c[j]-1]){
+        printf("ここの範囲内=%f\n",k);
       }
   }
 

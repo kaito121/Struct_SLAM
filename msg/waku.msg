@@ -1,0 +1,5 @@
+geometry_msgs/Point point_left
+geometry_msgs/Point point_right
+geometry_msgs/Point point_center
+geometry_msgs/Point point_centerleft
+geometry_msgs/Point point_centerright

@@ -1,0 +1,6 @@
+<launch>
+	<node name="basic_simple_talker" pkg="struct_slam" type="basic_simple_talker1">
+	 <param name = "content" value="alternative hello"/>
+	</node>
+	<node name="basic_simple_listener" pkg="struct_slam" type="basic_simple_listener" output="screen"/>
+</launch>

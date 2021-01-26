@@ -1,0 +1,41 @@
+<launch>
+  <!--map-->
+  <arg name="localMap/width/float" default="16.0"/>
+  <arg name="localMap/height/float" default="16.0"/>
+  <arg name="localMap/resolution" default="0.05"/>
+  <arg name="imageMatching/debugType" default="1"/>
+  <arg name="imageMatching/trackThreshold" default="5"/>
+  <!-- rqt_reconfigure -->
+  <arg name="imageMatching/rqt_reconfigure" default="false"/>
+  <!-- output_screen-->
+  <arg name="imageMatching/output_screen" default="false"/>
+  <!-- <arg name="robot_name"        default="robot2"/> -->
+  <!-- <group ns="$(arg robot_name)"> -->
+  <group if="$(arg imageMatching/output_screen)">
+    <node pkg="struct_slam" type="struct_slam_im" name="struct_slam_im" respawn="true" output="screen">
+      <param name="imageMatching/debugType" value="$(arg imageMatching/debugType)"/>
+      <!--map parameter-->
+      <param name="localMap/width/float" value="$(arg localMap/width/float)"/>
+      <param name="localMap/height/float" value="$(arg localMap/height/float)"/>
+      <param name="localMap/resolution" value="$(arg localMap/resolution)"/>
+      <!-- track threshold -->
+      <param name="imageMatching/trackThreshold" value="$(arg imageMatching/trackThreshold)"/>
+      <!-- rqt_reconfigure -->
+      <param name="imageMatching/rqt_reconfigure" value="$(arg imageMatching/rqt_reconfigure)"/>
+    </node>
+  </group>
+  <group unless="$(arg imageMatching/output_screen)">
+    <node pkg="struct_slam" type="struct_slam_im" name="struct_slam_im" respawn="true" >
+      <param name="imageMatching/debugType" value="$(arg imageMatching/debugType)"/>
+      <!--map parameter-->
+      <param name="localMap/width/float" value="$(arg localMap/width/float)"/>
+      <param name="localMap/height/float" value="$(arg localMap/height/float)"/>
+      <param name="localMap/resolution" value="$(arg localMap/resolution)"/>
+      <!-- track threshold -->
+      <param name="imageMatching/trackThreshold" value="$(arg imageMatching/trackThreshold)"/>
+      <!-- rqt_reconfigure -->
+      <param name="imageMatching/rqt_reconfigure" value="$(arg imageMatching/rqt_reconfigure)"/>
+    </node>
+  </group>
+  <!-- </group> -->
+</launch>
