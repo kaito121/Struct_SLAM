@@ -81,34 +81,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
     depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
 
-    //オプティカルフローに送る画像データを代入
-
-    
-    // struct_slam::MaskImageData image_data;//image_data(トピック送信用）
-    // int width,height;
-    // float res,mapwidth=8,mapheight=8;
-    // width = bridgeRGBImage->image.cols;//列のピクセル数
-    // height = bridgeRGBImage->image.rows;//行のピクセル数
-    // res=0.05;//マップサイズ調整
-
-    // image_data.header = bridgeRGBImage->header;
-    // image_data.mapWidth.data = mapwidth;
-    // image_data.mapHeight.data = mapheight;
-    // image_data.index.resize(width*height);//indexは総ピクセル数
-    // image_data.pt.resize(width*height);//indexは総ピクセル数
-
-    // image_data.mapRes.data = res;
-    // image_data.mapWidthInt.data = (int)(width/res);
-    // image_data.mapHeightInt.data = (int)(height/res);
-     /*for (int i=0; i<=width; ++i) {
-     for (int j=0;j<height; ++j) {
-       image_data.pt.resize(width*height);//indexは総ピクセル数
-       image_data.pt[].x = i;
-       image_data.pt[].y = j;
-       image_data.pt[].z = img_depth.at<float>;
-     }}*/
-
-
 
 //ここに処理項目
 	  cv::Mat img_src = RGBimage;
@@ -326,33 +298,16 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     double va[10][10],vb[10][10],P[3][20][2][4];
 
     for(int j=0;j<=t;j++){
-        std::cout <<"線の総数["<<j<<"]= "<<c[j]<< std::endl;
+        std::cout <<"線Aの総数["<<j<<"]= "<<c[j]<< std::endl;
         std::cout <<"グループ番号= "<<j<< std::endl;
         int i2=0;
+        std::cout <<"初期化i2= "<<i2<< std::endl;
       for(int i=0;i<c[j];i++){
         if(A[j][i][0][0]>=0 && A[j][i][0][1]>=0){//画像座標uの値が0以上の時のみに実行(画像座標データの損失を考慮)
         if(A[j][i][1][0]>=0 && A[j][i][1][1]>=0){//画像座標vの値が0以上の時のみに実行(画像座標データの損失を考慮)
           if(A[j][i][0][2]>0 && A[j][i][1][2]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
-          //Aはthetaの数値セット
-          
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][0]= "<<A[j][i][0][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][x]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][1]= "<<A[j][i][0][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][y]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][2]= "<<A[j][i][0][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][z]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][3]= "<<A[j][i][0][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][θ]
-
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][0]= "<<A[j][i][1][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][x]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][1]= "<<A[j][i][1][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][y]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][2]= "<<A[j][i][1][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][z]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][3]= "<<A[j][i][1][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][θ]
-          
-           }}}//if文last
-        }//for文 i最後
-        std::cout <<"  "<< std::endl;//改行
-      for(int i=0;i<c[j];i++){
-        if(A[j][i][0][0]>=0 && A[j][i][0][1]>=0){//画像座標uの値が0以上の時のみに実行(画像座標データの損失を考慮)
-        if(A[j][i][1][0]>=0 && A[j][i][1][1]>=0){//画像座標vの値が0以上の時のみに実行(画像座標データの損失を考慮)
-          if(A[j][i][0][2]>0 && A[j][i][1][2]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
-          if(i!=0){i2=i2+1;}//Pの線番号の更新
+          //if(i!=0){i2=i2+1;}//Pの線番号の更新
+          std::cout <<"カウントアップi2= "<<i2<< std::endl;
 
           //上のが要素によって覗かれるので連番にならない、そこで次の工程で連番にする
           P[j][i2][0][0]=A[j][i][0][0],P[j][i2][1][0]=A[j][i][1][0];
@@ -369,17 +324,22 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           std::cout <<"チェックP["<<j<<"]["<<i2<<"][1][1]= "<<P[j][i2][1][1]<< std::endl;//P[グループ番号][個数番号][点1or点2][y]
           std::cout <<"チェックP["<<j<<"]["<<i2<<"][1][2]= "<<P[j][i2][1][2]<< std::endl;//P[グループ番号][個数番号][点1or点2][z]
           std::cout <<"チェックP["<<j<<"]["<<i2<<"][1][3]= "<<P[j][i2][1][3]<< std::endl;//P[グループ番号][個数番号][点1or点2][θ]
+          //ここでi2回回しているつまり、i2個線が存在するということである  
+          i2=i2+1;
+          }}}//if文last
+        }//for文 i最後
+        std::cout <<"有効線Pの総数["<<j<<"]= "<<i2<< std::endl;
 
-
+        for(int i=0;i<i2;i++){
           //一次関数のaとbの要素を求めている
-          va[j][i]=(A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0]);
-          vb[j][i]=A[j][i][0][1]-(A[j][i][0][0]*((A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0])));
+          va[j][i]=(P[j][i][0][1]-P[j][i][1][1])/(P[j][i][0][0]-P[j][i][1][0]);
+          vb[j][i]=P[j][i][0][1]-(P[j][i][0][0]*((P[j][i][0][1]-P[j][i][1][1])/(P[j][i][0][0]-P[j][i][1][0])));
 
           //消失点ラインの描写
           double u0,v0,v640;
         
-            v0=A[j][i][0][1]-(A[j][i][0][0]*((A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0])));//v軸との交点(0,v0)
-            u0=A[j][i][0][0]-(A[j][i][0][1]*((A[j][i][0][0]-A[j][i][1][0])/(A[j][i][0][1]-A[j][i][1][1])));//u軸との交点(u0,0)
+            v0=P[j][i][0][1]-(P[j][i][0][0]*((P[j][i][0][1]-P[j][i][1][1])/(P[j][i][0][0]-P[j][i][1][0])));//v軸との交点(0,v0)
+            u0=P[j][i][0][0]-(P[j][i][0][1]*((P[j][i][0][0]-P[j][i][1][0])/(P[j][i][0][1]-P[j][i][1][1])));//u軸との交点(u0,0)
             if(v0<=0||u0<=0){
               //uとvがマイナスになってしまう場合
               //(640,v640)画面端との交点
@@ -389,20 +349,20 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           
 
           geometry_msgs::Point p;
-          p.x = A[j][i][0][0]*0.007;
-          p.z = A[j][i][0][1]*0.007;
-          p.y = A[j][i][0][2]*0.01;
+          p.x = P[j][i][0][0]*0.007;
+          p.z = P[j][i][0][1]*0.007;
+          p.y = P[j][i][0][2]*0.01;
             // ラインリストは、各ラインに2点必要
           line_list.points.push_back(p);
-          p.x =A[j][i][1][0]*0.007;
-          p.z =A[j][i][1][1]*0.007;
-          p.y =A[j][i][1][2]*0.01;
+          p.x =P[j][i][1][0]*0.007;
+          p.z =P[j][i][1][1]*0.007;
+          p.y =P[j][i][1][2]*0.01;
           line_list.points.push_back(p);
 
           int R,G,B;
           double ro,rox1,rox2;
 
-          ro=A[j][i][0][0]*cos(A[j][i][0][2])+A[j][i][0][1]*sin(A[j][i][0][2]);
+          ro=P[j][i][0][0]*cos(P[j][i][0][2])+P[j][i][0][1]*sin(P[j][i][0][2]);
           rox1=ro-1000;
           rox2=ro+1000;
 
@@ -417,17 +377,17 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           line_list.color.a = 1.0;
 
          if(lines.size()!=0){ 
-             cv::line(img_dst,cv::Point(A[j][i][0][0],A[j][i][0][1]), cv::Point(A[j][i][1][0],A[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
-             cv::line(img_line,cv::Point(A[j][i][0][0],A[j][i][0][1]), cv::Point(A[j][i][1][0],A[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
+             cv::line(img_dst,cv::Point(P[j][i][0][0],P[j][i][0][1]), cv::Point(P[j][i][1][0],P[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
+             cv::line(img_line,cv::Point(P[j][i][0][0],P[j][i][0][1]), cv::Point(P[j][i][1][0],P[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
              cv::line(img_line,cv::Point(rox1,1000), cv::Point(rox2,1000), cv::Scalar(B,G,R), 2, cv::LINE_AA);
          
              //ラインが垂直の時
-            if(A[j][i][0][0]==A[j][i][1][0]){
+            if(P[j][i][0][0]==P[j][i][1][0]){
             cv::line(img_dst,cv::Point(u0,0), cv::Point(u0,480), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             cv::line(img_line,cv::Point(u0,0), cv::Point(u0,480), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             }
             //ラインが水平の時
-            else if(A[j][i][0][1]==A[j][i][1][1]){
+            else if(P[j][i][0][1]==P[j][i][1][1]){
             cv::line(img_dst,cv::Point(0,v0), cv::Point(640,v0), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             cv::line(img_line,cv::Point(0,v0), cv::Point(640,v0), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             }
@@ -447,17 +407,17 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
              }
 
           marker_pub.publish(line_list);
-          // image_pub.publish(image_data);
-          
-          }}}//if文last
-        }//for文 i最後
+          // image_pub.publish(image_data)
+        }
+       
         int vn=0,vm=0;
         double Vx[5][10][10],Vy[5][10][10];
-         for(int i=0;i<c[j];i++){
+         //for(int i=0;i<i2;i++){
           //一次関数の交点
-          if(i!=0){
-            for(vn=0;vn<=t-1;vn++){
-            for(vm=vn+1;vm<=t;vm++){
+          //有効線Pの総数はi2
+          //if(i!=0){
+            for(vn=0;vn<=i2-2;vn++){
+            for(vm=vn+1;vm<=i2-1;vm++){
              Vx[j][vn][vm]=-((vb[j][vn]-vb[j][vm])/(va[j][vn]-va[j][vm]));
              Vy[j][vn][vm]=va[j][vn]*Vx[j][vn][vm]+vb[j][vn];
              std::cout <<"一次関数の交点Vx["<<j<<"]["<<vn<<"]["<<vm<<"]= "<<Vx[j][vn][vm]<< std::endl;
@@ -465,8 +425,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
              cv::circle(img_line,Point(Vx[j][vn][vm],Vy[j][vn][vm]),8,Scalar(0,0,255),-1);//赤点(一次関数交点画像座標)
               }
             }
-          }
-         }
+          //}
+        // }
     }//for文 j最後
 
 

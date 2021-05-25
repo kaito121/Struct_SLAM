@@ -11,9 +11,10 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl_ros/point_cloud.h>
 #include <dynamic_reconfigure/server.h>//reconfig用
-#include <mutex>
-//#include <OpenCV1/wakuhairetu.h>//自作メッセージ用ヘッダ
-#include <algorithm>//並び替え用
+#include <struct_slam/Depth_pclConfig.h>
+#include<mutex>
+#include<struct_slam/wakuhairetu.h>//自作メッセージ用ヘッダ
+#include<algorithm>//並び替え用
 #include <math.h>
 #include <stdlib.h>//絶対値用関数
 #include <highgui.h>
@@ -24,14 +25,20 @@
 
 
 ros::Subscriber sub;//データをsubcribeする奴
+ros::Publisher  pub;
+ros::Publisher  waku_pub;
 ros::Publisher marker_pub;
-// ros::Publisher image_pub;
-std::string win_src = "src";
-std::string win_edge = "edge";
-std::string win_dst = "dst";
+std::string win_src = "src";//nameteigi
+std::string win_dst = "dst";//nameteigi
 std::string win_dst2 = "dst2";
-std::string win_depth = "depth";
+std::string win_dst3 = "dst3";
+std::string win_nitika = "nitika";
+std::string win_edge = "edge";
+std::string win_open = "open";
 std::string win_line = "line";
+std::string file_src = "image/soturon/src1.png";
+std::string file_dst = "image/soturon/dst1.png";
+
 
 
 using namespace std;
@@ -44,6 +51,25 @@ using namespace cv;
 #define G_MIN 180
 #define R_MAX 255
 #define R_MIN 180
+
+//dynamic Reconfigure
+    double CLUSTER_TOLERANCE;
+    int MIN_CLUSTER_SIZE;
+    int MAX_CLUSTER_SIZE;
+    double X_wariai;
+    double Y_wariai;
+    double WINDOW_SIZE;
+    double X_pcl;
+    double Y_pcl;
+    double Z_pcl;
+    double Z_Z=1000;
+    double CONTRAST_MAX;
+    double CONTRAST_MIN;
+    double CLOSE_OPEN;
+    double OPEN_CLOSE;
+    double NITIKA;
+    double OPEN;
+//コールバック関数
 
 void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Image::ConstPtr& depth_msg)
 {
@@ -81,37 +107,14 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
     depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
 
-    //オプティカルフローに送る画像データを代入
-
-    
-    // struct_slam::MaskImageData image_data;//image_data(トピック送信用）
-    // int width,height;
-    // float res,mapwidth=8,mapheight=8;
-    // width = bridgeRGBImage->image.cols;//列のピクセル数
-    // height = bridgeRGBImage->image.rows;//行のピクセル数
-    // res=0.05;//マップサイズ調整
-
-    // image_data.header = bridgeRGBImage->header;
-    // image_data.mapWidth.data = mapwidth;
-    // image_data.mapHeight.data = mapheight;
-    // image_data.index.resize(width*height);//indexは総ピクセル数
-    // image_data.pt.resize(width*height);//indexは総ピクセル数
-
-    // image_data.mapRes.data = res;
-    // image_data.mapWidthInt.data = (int)(width/res);
-    // image_data.mapHeightInt.data = (int)(height/res);
-     /*for (int i=0; i<=width; ++i) {
-     for (int j=0;j<height; ++j) {
-       image_data.pt.resize(width*height);//indexは総ピクセル数
-       image_data.pt[].x = i;
-       image_data.pt[].y = j;
-       image_data.pt[].z = img_depth.at<float>;
-     }}*/
+    // pointcloud を作成
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pointCloud->points.reserve(RGBimage.size().width*RGBimage.size().height);//点の数
 
 
 
 //ここに処理項目
-	  cv::Mat img_src = RGBimage;
+	cv::Mat img_src = RGBimage;
     cv::Mat img_depth = depthimage;
     cv::Mat img_gray,img_edge,img_dst,img_dst2,img_dst3;
     cv::Mat img_line,img_line1;
@@ -213,7 +216,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   //printf("昇順ソートした数値\n");
   //for (int i=0; i<lines1.size(); ++i){ printf("lines[%d][1]=%f\n", i,lines1[i][1]); }
     int c[20],t,j,p;
-    double A[20][20][2][4],B;
+    double A[20][20][2][4],Q;
     c[0]=1,t=0,j=1,p=0;
 
     if(lines.size()>0){
@@ -228,8 +231,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     A[0][0][1][3]=theta[0];
     
 
-    B=theta[0];}
-    std::cout <<"初期値B[0]= "<<B<< std::endl;
+    Q=theta[0];}
+    std::cout <<"初期値B[0]= "<<Q<< std::endl;
     std::cout <<"初期値C[0]= "<<c[0]<< std::endl;
 
     
@@ -238,10 +241,10 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
         std::cout <<"lines["<<i<<"][0]= "<<lines[i][0]<< std::endl;
         std::cout <<"lines["<<i<<"][1]= "<<lines[i][1]<< std::endl;
-        std::cout <<"B["<<i<<"]= "<<B<< std::endl;
+        std::cout <<"Q["<<i<<"]= "<<Q<< std::endl;
 
         //前の番号と同じ数値
-        if( B==theta[i+1]){
+        if( Q==theta[i+1]){
             std::cout <<"theta["<<i+1<<"]= 同じ数値 "<< std::endl;
             A[t][j][0][0]=lines[i+1][0];//代入
             A[t][j][0][1]=lines[i+1][1];//代入
@@ -257,11 +260,11 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         //前の番号と異なる数値
         else{
 
-          if(theta[i+1]-B>0.3){//前の角度との差が0.5より大きい
+          if(theta[i+1]-Q>0.3){//前の角度との差が0.5より大きい
              std::cout <<"theta["<<i+1<<"]= 異なる数値 "<< std::endl;
              std::cout <<"theta["<<i+1<<"]="<<theta[i+1]<< std::endl;
-             std::cout <<"B="<<B<< std::endl;
-             std::cout <<"theta[i+1]-B="<<theta[i+1]-B<< std::endl;
+             std::cout <<"q="<<Q<< std::endl;
+             std::cout <<"theta[i+1]-Q="<<theta[i+1]-Q<< std::endl;
         
              t=t+1,j=0;//配列繰り上がり、ｊリセット
              A[t][j][0][0]=lines[i+1][0];//代入
@@ -272,13 +275,13 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
              A[t][j][1][1]=lines[i+1][3];//代入
              A[t][j][1][2]=dep2[i+1];//代入
              A[t][j][1][3]=theta[i+1];//代入
-             B=theta[i+1];//基準の更新
+             Q=theta[i+1];//基準の更新
              j=j+1;//配列カウント
              c[t]=0;//配列要素数初期値
             }
 
           else{//前の角度との差が0.5以下
-             std::cout <<"theta["<<i+1<<"]= ちょっと違う数値= "<<theta[i+1]-B<< std::endl;
+             std::cout <<"theta["<<i+1<<"]= ちょっと違う数値= "<<theta[i+1]-Q<< std::endl;
              A[t][j][0][0]=lines[i+1][0];//代入
              A[t][j][0][1]=lines[i+1][1];//代入
              A[t][j][0][2]=dep1[i+1];//代入
@@ -287,7 +290,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
              A[t][j][1][1]=lines[i+1][3];//代入
              A[t][j][1][2]=dep2[i+1];//代入
              A[t][j][1][3]=theta[i+1];//代
-             B=theta[i+1];//基準の更新
+             Q=theta[i+1];//基準の更新
              j=j+1;//配列カウント
              c[t]=c[t]+1;//要素数（同じ数値は何個あるか）
             }
@@ -326,33 +329,16 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     double va[10][10],vb[10][10],P[3][20][2][4];
 
     for(int j=0;j<=t;j++){
-        std::cout <<"線の総数["<<j<<"]= "<<c[j]<< std::endl;
+        std::cout <<"線Aの総数["<<j<<"]= "<<c[j]<< std::endl;
         std::cout <<"グループ番号= "<<j<< std::endl;
         int i2=0;
+        std::cout <<"初期化i2= "<<i2<< std::endl;
       for(int i=0;i<c[j];i++){
         if(A[j][i][0][0]>=0 && A[j][i][0][1]>=0){//画像座標uの値が0以上の時のみに実行(画像座標データの損失を考慮)
         if(A[j][i][1][0]>=0 && A[j][i][1][1]>=0){//画像座標vの値が0以上の時のみに実行(画像座標データの損失を考慮)
           if(A[j][i][0][2]>0 && A[j][i][1][2]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
-          //Aはthetaの数値セット
-          
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][0]= "<<A[j][i][0][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][x]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][1]= "<<A[j][i][0][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][y]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][2]= "<<A[j][i][0][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][z]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][3]= "<<A[j][i][0][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][θ]
-
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][0]= "<<A[j][i][1][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][x]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][1]= "<<A[j][i][1][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][y]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][2]= "<<A[j][i][1][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][z]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][3]= "<<A[j][i][1][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][θ]
-          
-           }}}//if文last
-        }//for文 i最後
-        std::cout <<"  "<< std::endl;//改行
-      for(int i=0;i<c[j];i++){
-        if(A[j][i][0][0]>=0 && A[j][i][0][1]>=0){//画像座標uの値が0以上の時のみに実行(画像座標データの損失を考慮)
-        if(A[j][i][1][0]>=0 && A[j][i][1][1]>=0){//画像座標vの値が0以上の時のみに実行(画像座標データの損失を考慮)
-          if(A[j][i][0][2]>0 && A[j][i][1][2]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
-          if(i!=0){i2=i2+1;}//Pの線番号の更新
+          //if(i!=0){i2=i2+1;}//Pの線番号の更新
+          std::cout <<"カウントアップi2= "<<i2<< std::endl;
 
           //上のが要素によって覗かれるので連番にならない、そこで次の工程で連番にする
           P[j][i2][0][0]=A[j][i][0][0],P[j][i2][1][0]=A[j][i][1][0];
@@ -369,17 +355,22 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           std::cout <<"チェックP["<<j<<"]["<<i2<<"][1][1]= "<<P[j][i2][1][1]<< std::endl;//P[グループ番号][個数番号][点1or点2][y]
           std::cout <<"チェックP["<<j<<"]["<<i2<<"][1][2]= "<<P[j][i2][1][2]<< std::endl;//P[グループ番号][個数番号][点1or点2][z]
           std::cout <<"チェックP["<<j<<"]["<<i2<<"][1][3]= "<<P[j][i2][1][3]<< std::endl;//P[グループ番号][個数番号][点1or点2][θ]
+          //ここでi2回回しているつまり、i2個線が存在するということである  
+          i2=i2+1;
+          }}}//if文last
+        }//for文 i最後
+        std::cout <<"有効線Pの総数["<<j<<"]= "<<i2<< std::endl;
 
-
+        for(int i=0;i<i2;i++){
           //一次関数のaとbの要素を求めている
-          va[j][i]=(A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0]);
-          vb[j][i]=A[j][i][0][1]-(A[j][i][0][0]*((A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0])));
+          va[j][i]=(P[j][i][0][1]-P[j][i][1][1])/(P[j][i][0][0]-P[j][i][1][0]);
+          vb[j][i]=P[j][i][0][1]-(P[j][i][0][0]*((P[j][i][0][1]-P[j][i][1][1])/(P[j][i][0][0]-P[j][i][1][0])));
 
           //消失点ラインの描写
           double u0,v0,v640;
         
-            v0=A[j][i][0][1]-(A[j][i][0][0]*((A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0])));//v軸との交点(0,v0)
-            u0=A[j][i][0][0]-(A[j][i][0][1]*((A[j][i][0][0]-A[j][i][1][0])/(A[j][i][0][1]-A[j][i][1][1])));//u軸との交点(u0,0)
+            v0=P[j][i][0][1]-(P[j][i][0][0]*((P[j][i][0][1]-P[j][i][1][1])/(P[j][i][0][0]-P[j][i][1][0])));//v軸との交点(0,v0)
+            u0=P[j][i][0][0]-(P[j][i][0][1]*((P[j][i][0][0]-P[j][i][1][0])/(P[j][i][0][1]-P[j][i][1][1])));//u軸との交点(u0,0)
             if(v0<=0||u0<=0){
               //uとvがマイナスになってしまう場合
               //(640,v640)画面端との交点
@@ -389,20 +380,20 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           
 
           geometry_msgs::Point p;
-          p.x = A[j][i][0][0]*0.007;
-          p.z = A[j][i][0][1]*0.007;
-          p.y = A[j][i][0][2]*0.01;
+          p.x = P[j][i][0][0]*0.007;
+          p.z = P[j][i][0][1]*0.007;
+          p.y = P[j][i][0][2]*0.01;
             // ラインリストは、各ラインに2点必要
           line_list.points.push_back(p);
-          p.x =A[j][i][1][0]*0.007;
-          p.z =A[j][i][1][1]*0.007;
-          p.y =A[j][i][1][2]*0.01;
+          p.x =P[j][i][1][0]*0.007;
+          p.z =P[j][i][1][1]*0.007;
+          p.y =P[j][i][1][2]*0.01;
           line_list.points.push_back(p);
 
           int R,G,B;
           double ro,rox1,rox2;
 
-          ro=A[j][i][0][0]*cos(A[j][i][0][2])+A[j][i][0][1]*sin(A[j][i][0][2]);
+          ro=P[j][i][0][0]*cos(P[j][i][0][2])+P[j][i][0][1]*sin(P[j][i][0][2]);
           rox1=ro-1000;
           rox2=ro+1000;
 
@@ -417,17 +408,17 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           line_list.color.a = 1.0;
 
          if(lines.size()!=0){ 
-             cv::line(img_dst,cv::Point(A[j][i][0][0],A[j][i][0][1]), cv::Point(A[j][i][1][0],A[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
-             cv::line(img_line,cv::Point(A[j][i][0][0],A[j][i][0][1]), cv::Point(A[j][i][1][0],A[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
+             cv::line(img_dst,cv::Point(P[j][i][0][0],P[j][i][0][1]), cv::Point(P[j][i][1][0],P[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
+             cv::line(img_line,cv::Point(P[j][i][0][0],P[j][i][0][1]), cv::Point(P[j][i][1][0],P[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
              cv::line(img_line,cv::Point(rox1,1000), cv::Point(rox2,1000), cv::Scalar(B,G,R), 2, cv::LINE_AA);
          
              //ラインが垂直の時
-            if(A[j][i][0][0]==A[j][i][1][0]){
+            if(P[j][i][0][0]==P[j][i][1][0]){
             cv::line(img_dst,cv::Point(u0,0), cv::Point(u0,480), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             cv::line(img_line,cv::Point(u0,0), cv::Point(u0,480), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             }
             //ラインが水平の時
-            else if(A[j][i][0][1]==A[j][i][1][1]){
+            else if(P[j][i][0][1]==P[j][i][1][1]){
             cv::line(img_dst,cv::Point(0,v0), cv::Point(640,v0), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             cv::line(img_line,cv::Point(0,v0), cv::Point(640,v0), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             }
@@ -447,27 +438,134 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
              }
 
           marker_pub.publish(line_list);
-          // image_pub.publish(image_data);
-          
-          }}}//if文last
-        }//for文 i最後
+          // image_pub.publish(image_data)
+        }
+       
         int vn=0,vm=0;
         double Vx[5][10][10],Vy[5][10][10];
-         for(int i=0;i<c[j];i++){
+         //for(int i=0;i<i2;i++){
           //一次関数の交点
-          if(i!=0){
-            for(vn=0;vn<=t-1;vn++){
-            for(vm=vn+1;vm<=t;vm++){
+          //有効線Pの総数はi2
+          //if(i!=0){
+            for(vn=0;vn<=i2-2;vn++){
+            for(vm=vn+1;vm<=i2-1;vm++){
              Vx[j][vn][vm]=-((vb[j][vn]-vb[j][vm])/(va[j][vn]-va[j][vm]));
              Vy[j][vn][vm]=va[j][vn]*Vx[j][vn][vm]+vb[j][vn];
              std::cout <<"一次関数の交点Vx["<<j<<"]["<<vn<<"]["<<vm<<"]= "<<Vx[j][vn][vm]<< std::endl;
              std::cout <<"一次関数の交点Vy["<<j<<"]["<<vn<<"]["<<vm<<"]= "<<Vy[j][vn][vm]<< std::endl;
              cv::circle(img_line,Point(Vx[j][vn][vm],Vy[j][vn][vm]),8,Scalar(0,0,255),-1);//赤点(一次関数交点画像座標)
+
+            pcl::PointXYZRGB jk;
+
+            //XYはimageのデータなのでpclにそのままもって行くとでかい そこである定数で割ることで食らうタリング座標に変換する-------------------------(1)
+             jk.x=(float)Vx[j][vn][vm]/X_wariai;//ピクセル距離をクラスタリング距離に変換
+             jk.y=(float)Vx[j][vn][vm]/Y_wariai;
+             jk.z=(float)1;//ZはDepthデータなのでそのままで行ける
+
+             pointCloud->points.emplace_back(jk);//ポイントクラウドに座標データを移動
+             std::cout <<"B["<<Vx[j][vn][vm]<<"]["<<Vy[j][vn][vm]<<"]="<<pointCloud->points.back().z<<"_m"<< std::endl;
+
               }
             }
-          }
-         }
+          //}
+        // }
     }//for文 j最後
+
+    //pointcloudサイズ設定
+    pointCloud -> width = pointCloud -> points.size();
+    pointCloud -> height = 1;
+    pointCloud -> is_dense = true;
+
+     // クラスタリングの設定
+    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
+    tree->setInputCloud (pointCloud);
+
+    pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
+    ec.setClusterTolerance (CLUSTER_TOLERANCE);//同じクラスタとみなす距離
+  	ec.setMinClusterSize (MIN_CLUSTER_SIZE);//クラスタを構成する最小の点数
+  	ec.setMaxClusterSize (MAX_CLUSTER_SIZE);//クラスタを構成する最大の点数
+  	ec.setSearchMethod (tree);//s探索方法
+  	ec.setInputCloud (pointCloud);//クラスタリングするポイントクラウドの指定
+
+    // クラスタリング実行
+    std::vector<pcl::PointIndices> indices;
+	  ec.extract (indices);//結果
+
+    int R[12]={255,255,255,125,125,125,50,50,50,0,0,0};
+    int G[12]={50,125,0,50,125,0,255,50,125,0,50,125};
+    int B[12]={50,50,50,125,125,125,255,255,255,0,0,0};
+    int j2=0;
+    double MAXPX,MINPX,MAXPY,MINPY,CENTPY,PZ,leftz,rightz,centerz,centerx,centerleftx,centerleftz,centerrightx,centerrightz;
+
+
+     // クラスタリング の結果を色々できるところ(配列にアクセス)
+    for (std::vector<pcl::PointIndices>::iterator it = indices.begin (); it != indices.end (); ++it){ // グループにアクセスするループ(it=グループ番号)
+        std::sort(it->indices.begin (),it->indices.end (),[&] (int const& a,int const& b){//並び替え
+        return pointCloud -> points[a].x > pointCloud -> points[b].x;//並び替えの条件
+        });
+    }
+        //ROS_INFO("なか ");//printと秒数表示
+    for (std::vector<pcl::PointIndices>::const_iterator it = indices.begin (); it != indices.end (); ++it){ 
+        j2=j2+1; MAXPX=-10000,MINPX=10000,MAXPY=-10000,MINPY=10000;
+        for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit){ // グループ中の点にアクセスするループ(pit=グループ内の点番号)
+            // 点へのアクセス
+      
+            pointCloud -> points[*pit].r = R[j2%12];//ポイントクラウドのマスの色付け
+            pointCloud -> points[*pit].g = G[j2%12];
+            pointCloud -> points[*pit].b = B[j2%12];
+
+            cv::circle(img_line,Point((int)(pointCloud -> points[*pit].x*X_wariai),(int)(pointCloud -> points[*pit].y*Y_wariai)),8,Scalar(B[j2%12],G[j2%12],R[j2%12]),-1);//赤点(一次関数交点画像座標)
+            //rectangle(img_dst9, Rect((int)(pointCloud -> points[*pit].x*X_wariai), (int)(pointCloud -> points[*pit].y*Y_wariai),W,H), Scalar(B[j%12],G[j%12],R[j%12]),1);//四角作成
+            //std::cout <<"X["<<pointCloud -> points[*pit].x<<"]["<<pointCloud -> points[*pit].y<<"]="<<pointCloud -> points[*pit].z<<"_m"<< std::endl;
+            
+            if(MAXPY<=(pointCloud -> points[*pit].y * Y_wariai)){MAXPY = pointCloud -> points[*pit].y * Y_wariai;}//yの最大値(ピクセル座標)
+            if(MINPY>=(pointCloud -> points[*pit].y * Y_wariai)){MINPY = pointCloud -> points[*pit].y * Y_wariai;}//pointsをwariaiでかけるとピクセル座標になる(ピクセル座標)
+            CENTPY=(MAXPY+MINPY)/2;
+            
+            //image座標からpcl座標に移行（image座標の原点は左上,pcl座標の原点は画像の中心
+            //ピクセルX-Xの高さ半分の値
+            //pointsはクラスタリング座標なのである定数をかけることでピクセル座標に変換している、ピクセル座標をpcl定数で割ることでpcl座標に変換している
+            pointCloud -> points[*pit].x = ((pointCloud -> points[*pit].x*X_wariai)-(RGBimage.size().width/2))/X_pcl; //ピクセル原点からpcl上のX原点変換(pcl座標)
+            pointCloud -> points[*pit].y = ((pointCloud -> points[*pit].y*Y_wariai)-(RGBimage.size().height/2))/Y_pcl;//ピクセル原点からpcl上のY原点変換(pcl座標)
+            pointCloud -> points[*pit].z *= Z_pcl;
+            //ここの段階でpointsがPCL座標になる
+        }
+        //ROS_INFO("おわり");//printと秒数表示
+    //itの回数が大枠の個数
+    //
+        double CENPX,CENPXMAX,CENPXMIN,cenpx=1000,cenpxmin=1000,cenpxmax=1000;
+       /* //pcl座標にpclをかけるとピクセル座標に変換される
+         MINPX = pointCloud -> points[*(it->indices.end ()-1)].x * X_pcl +(RGBimage.size().width/2);//並び替えたのでitの最後の値がXの最小値となる(leftX)(ピクセル座標)
+         MAXPX = pointCloud -> points[*(it->indices.begin ())].x * X_pcl +(RGBimage.size().width/2);//(RightX)(ピクセル座標)
+         CENPX = (pointCloud -> points[*(it->indices.end ()-1)].x+pointCloud -> points[*(it->indices.begin ())].x)/2;//(CenterX)（pcl座標）
+         CENPXMIN = (pointCloud -> points[*(it->indices.end ()-1)].x+CENPX)/2;//LeftXとCenterXの間のX（pcl座標）
+         CENPXMAX = (pointCloud -> points[*(it->indices.begin ())].x+CENPX)/2;//RightXとCenterXの間のX（pcl座標）
+
+        std::cout <<"MINPX["<<MINPX<<"]  MINPY["<<MINPY<<"]"<< std::endl;
+        std::cout <<"MAXPX["<<MAXPX<<"]  MAXPY["<<MAXPY<<"]"<< std::endl;
+        std::cout <<"CENPX["<<CENPX<<"]"<< std::endl;
+
+     for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit){ // 中心点にアクセスするループ(pit=グループ内の点番号
+       
+       //注目点のX座標を求めそのときのZ座標も求める
+        if(cenpx>=std::abs(CENPX-pointCloud -> points[*pit].x)){cenpx = std::abs(CENPX-pointCloud -> points[*pit].x);//大枠の中心点のX座標を求める
+            centerx = (pointCloud -> points[*pit].x * X_pcl +(RGBimage.size().width/2));//pcl座標にpcl定数でかけるとピクセル座標になりXsizeの半分の値を足して原点をピクセル原点に戻す(ピクセル座標)
+            centerz = pointCloud -> points[*pit].z;
+            }//if文終了
+        
+        if(cenpxmin>=std::abs(CENPXMIN-pointCloud -> points[*pit].x)){cenpxmin = std::abs(CENPXMIN-pointCloud -> points[*pit].x);//大枠の中心点とLeftXの間のX座標を求める
+            centerleftx = (pointCloud -> points[*pit].x * X_pcl +(RGBimage.size().width/2));//pcl座標にpcl定数でかけるとピクセル座標になりXsizeの半分の値を足して原点をピクセル原点に戻す(ピクセル座標)
+            centerleftz = pointCloud -> points[*pit].z;
+            }//if文終了
+
+        if(cenpxmax>=std::abs(CENPXMAX-pointCloud -> points[*pit].x)){cenpxmax = std::abs(CENPXMAX-pointCloud -> points[*pit].x);//大枠の中心点とRightXの間のX座標を求める
+            centerrightx = (pointCloud -> points[*pit].x * X_pcl +(RGBimage.size().width/2));//pcl座標にpcl定数でかけるとピクセル座標になりXsizeの半分の値を足して原点をピクセル原点に戻す(ピクセル座標)
+            centerrightz = pointCloud -> points[*pit].z;
+            }//if文終了    
+      }//fot文終了
+
+    rightz = pointCloud -> points[*(it->indices.end ()-1)].z;
+    leftz = pointCloud -> points[*it->indices.begin ()].z;*/
 
 
 
@@ -490,28 +588,57 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   	cv::waitKey(1);
    //ros::spinにジャンプする
 }
+}
+
+
+void dynamicParamsCB(struct_slam::Depth_pclConfig &cfg, uint32_t level){
+    CLUSTER_TOLERANCE = cfg.cluster_tolerance;
+    MIN_CLUSTER_SIZE = cfg.min_cluster_size;
+    MAX_CLUSTER_SIZE = cfg.max_cluster_size;
+    X_wariai = cfg.X_wariai;
+    Y_wariai = cfg.Y_wariai;
+    WINDOW_SIZE=cfg.window_size;
+    X_pcl = cfg.X_pcl;
+    Y_pcl = cfg.Y_pcl;
+    Z_pcl = cfg.Z_pcl;
+    CONTRAST_MIN = cfg.contrast_min;
+    CONTRAST_MAX = cfg.contrast_max;
+    OPEN_CLOSE = cfg.open_close;
+    CLOSE_OPEN = cfg.close_open;
+    NITIKA = cfg.nitika;
+    OPEN = cfg.open;
+
+    }
 
 //メイン関数
+
 int main(int argc,char **argv){
+	ros::init(argc,argv,"opencv_main");
+    	
+	ros::NodeHandle nhSub;
+    //sub設定(データ受け取り)
+    //Realsensesの時
+	 message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
+	 message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
 
-	ros::init(argc,argv,"opencv_main");//rosを初期化
-	ros::NodeHandle nhSub;//ノードハンドル
-	
-	//subscriber関連
-	message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
-	message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+    //kinectのとき
+    //message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/rgb/image_rect_color", 1);
+	//message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth_registered/image_raw", 1);
 
-  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,sensor_msgs::Image> MySyncPolicy;	
+	typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,sensor_msgs::Image> MySyncPolicy;	
 	message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10),rgb_sub, depth_sub);
 	sync.registerCallback(boost::bind(&callback,_1, _2));
 
-  ros::NodeHandle n;
-  marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 10);
-  // image_pub = n.advertise<sensor_msgs::Image>("maskImageData", 10);//realsenseの画像データをパブリッシュ
+    //reconfigure設定
+    dynamic_reconfigure::Server<struct_slam::Depth_pclConfig> drs_;
+    drs_.setCallback(boost::bind(&dynamicParamsCB, _1, _2));
 
-  
-
-	ros::spin();//トピック更新待機
-			
+    ros::NodeHandle nhPub;
+    pub=nhPub.advertise<sensor_msgs::PointCloud2>("depth_pcl", 1000);
+    marker_pub = nhPub.advertise<visualization_msgs::Marker>("visualization_marker", 10);
+    waku_pub=nhPub.advertise<struct_slam::wakuhairetu>("wakuhairetu", 1000);//パブリッシュ設定
+    	
+	ros::spin();
+	
 	return 0;
 }

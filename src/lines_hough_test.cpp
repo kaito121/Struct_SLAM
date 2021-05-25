@@ -27,9 +27,11 @@ ros::Subscriber sub;//データをsubcribeする奴
 ros::Publisher marker_pub;
 // ros::Publisher image_pub;
 std::string win_src = "src";
-std::string win_edge = "edge";
+std::string win_edge0 = "edge0";
 std::string win_edge1 = "edge1";
 std::string win_edge2 = "edge2";
+std::string win_edge3 = "edge3";
+std::string win_graycont = "graycont";
 std::string win_dst = "dst";
 std::string win_dst2 = "dst2";
 std::string win_depth = "depth";
@@ -115,13 +117,17 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 //ここに処理項目
 	  cv::Mat img_src = RGBimage;
     cv::Mat img_depth = depthimage;
-    cv::Mat img_gray,img_edge,img_dst,img_dst2,img_dst3,img_dst4,img_edge2,img_edge1;
+    cv::Mat img_gray,img_edge0,img_dst,img_dst2,img_dst3,img_dst4,img_edge2,img_edge1,img_graycont,img_edge3;
     cv::Mat img_line,img_line1;
 
     img_src.copyTo(img_dst);
     //img_src.copyTo(img_dst2);
     
     cv::cvtColor(img_src, img_gray, cv::COLOR_RGB2GRAY);
+    int contmin=150,contmax=200;
+    img_gray.convertTo(img_graycont, img_gray.type(),255.0/(contmax-contmin),-255.0*contmin/(contmax-contmin));
+
+
     cv::equalizeHist(img_gray,img_dst2);//ヒストグラム均一化
 
     //膨張縮小処理(一回目)
@@ -138,9 +144,11 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     //cv::Laplacian(img_dst2, img_tmp1, CV_32F, 3);
     //cv::convertScaleAbs(img_tmp1, img_dst3, 1, 0);
 
-    cv::Canny(img_dst4, img_edge, 200, 200);
-    cv::Canny(img_gray, img_edge1, 200, 200);
-    cv::Canny(img_dst2, img_edge2, 200, 200);
+    cv::Canny(img_gray, img_edge0, 200, 200);//元画像
+    cv::Canny(img_dst4, img_edge1, 200, 200);//ヒスト+OPCL
+    cv::Canny(img_dst2, img_edge2, 200, 200);//ヒスト
+    cv::Canny(img_graycont,img_edge3,200,200);//コントラスト強調
+
 
     float dep,dep1[100],dep2[100];
     double theta[100];
@@ -149,22 +157,27 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     std::cout <<"for文終了"<< std::endl;
 
     cv::namedWindow(win_src, cv::WINDOW_AUTOSIZE);
-    cv::namedWindow(win_edge, cv::WINDOW_AUTOSIZE);
+    cv::namedWindow(win_graycont, cv::WINDOW_AUTOSIZE);
+    cv::namedWindow(win_edge0, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_edge1, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_edge2, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_dst, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_dst2, cv::WINDOW_AUTOSIZE);
+    cv::namedWindow(win_edge3, cv::WINDOW_AUTOSIZE);
     //cv::namedWindow(win_depth, cv::WINDOW_AUTOSIZE);
     //cv::namedWindow(win_line, cv::WINDOW_AUTOSIZE);
 
     cv::imshow(win_src, img_src);
-    cv::imshow(win_edge, img_edge);
+    cv::imshow(win_edge0, img_edge0);
     cv::imshow(win_edge1, img_edge1);
     cv::imshow(win_edge2, img_edge2);
     cv::imshow(win_dst, img_dst);
     cv::imshow(win_dst2, img_dst2);
     //cv::imshow(win_depth, img_depth);
     //cv::imshow(win_line, img_line);
+     cv::imshow(win_graycont, img_graycont);
+     cv::imshow(win_edge3, img_edge3);
+
 
   	cv::waitKey(1);
    //ros::spinにジャンプする

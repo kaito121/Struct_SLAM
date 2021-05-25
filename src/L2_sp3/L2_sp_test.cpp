@@ -115,8 +115,8 @@ cv::Mat mat = mat_;
   //std::cout << "mtest4=" << mtest4 << std::endl << std::endl;
 
 
-
-
+std::cout <<"関数チェック"<< std::endl;
+//行列の分解テスト
 // 3x3 の行列
   cv::Mat m100 = (cv::Mat_<double>(3,3) << 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
@@ -133,6 +133,31 @@ cv::Mat mat = mat_;
   std::cout << m100.colRange(cv::Range(0,2)) << std::endl << std::endl;
   // 0列目
   std::cout << m100.col(0) << std::endl << std::endl;
+
+  //行列テスト
+  cv::Mat m1010 = (cv::Mat_<double>(1,9) << 1, 2, 3, 4, 5, 6, 7, 8, 9);//1行9列
+  cv::Mat m10110 = (cv::Mat_<double>(9,1) << 1, 2, 3, 4, 5, 6, 7, 8, 9);//9列1行
+  std::cout << m1010.rowRange(cv::Range::all()) << std::endl << std::endl;//行列の表示コマンド
+  std::cout << m10110.rowRange(cv::Range::all()) << std::endl << std::endl;//行列の表示コマンド
+
+  int L=100;//行列内に変数が入るかのテスト
+  cv::Mat m1111 = (cv::Mat_<double>(1,9) << 1, 2, 3, 4, 5, 6, 7, L, 9);//1行9列
+  std::cout << m1111.rowRange(cv::Range::all()) << std::endl << std::endl;//行列の表示コマンド
+
+  int K=10;//要素数にも変数可能
+  cv::Mat m11110 = (cv::Mat_<double>(1,K) << 1, 2, 3, 4, 5, 6, 7, L, 9,10);//1行9列
+  std::cout << m11110.rowRange(cv::Range::all()) << std::endl << std::endl;//行列の表示コマンド
+
+  int Y;
+  Y=(123,567);
+  std::cout << "Y=" << Y << std::endl ;
+
+  int X[2];
+  X[0]=123;
+  X[1]=567;
+  
+  std::cout << "X[0]=" << X[0] << "X[1]=" << X[1] << std::endl ;
+  //行列は配列で代用する？
   
 
 

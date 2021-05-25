@@ -299,6 +299,12 @@ add_dependencies(depth_pcl4_20201127 ${PROJECT_NAME}_gencfg)
 add_dependencies(depth_pcl4_20201127 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(depth_pcl4_20201127 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#20210521 FLDver
+add_executable(depth_pcl4_20210521 src/depth_pcl4_20210521.cpp)
+add_dependencies(depth_pcl4_20210521 ${PROJECT_NAME}_gencfg)
+add_dependencies(depth_pcl4_20210521 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(depth_pcl4_20210521 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
 add_executable(depth_pcl4_sub_20201127 src/depth_pcl4_sub_20201127.cpp)
 add_dependencies(depth_pcl4_sub_20201127 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(depth_pcl4_sub_20201127 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
@@ -400,3 +406,206 @@ add_dependencies(lines_prm2 ${PROJECT_NAME}_gencfg)
 add_dependencies(lines_prm2 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(lines_prm2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#20210208 copy of lines_hough
+add_executable(lines_hough3 src/lines_hough3.cpp)
+add_dependencies(lines_hough3 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_hough3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_hough3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210210 copy of depth_pcl4_20201127
+add_executable(depth_pcl4_test src/depth_pcl4_test.cpp)
+add_dependencies(depth_pcl4_test ${PROJECT_NAME}_gencfg)
+add_dependencies(depth_pcl4_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(depth_pcl4_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210210 copy of depth_pcl4_20201127 and lines_hough3
+add_executable(depth_pcl4_lines_hough3 src/depth_pcl4_lines_hough3.cpp)
+add_dependencies(depth_pcl4_lines_hough3 ${PROJECT_NAME}_gencfg)
+add_dependencies(depth_pcl4_lines_hough3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(depth_pcl4_lines_hough3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210217 copy of lines_hough3 next ver
+#add_executable(lines_hough4 src/lines_hough4.cpp)
+#add_dependencies(lines_hough4 ${PROJECT_NAME}_gencfg)
+#add_dependencies(lines_hough4 ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(lines_hough4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210223 copy of lines_hough3 next ver
+add_executable(lines_hough5 src/lines_hough5.cpp)
+add_dependencies(lines_hough5 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_hough5 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_hough5 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210224 LSD 
+add_executable(20210224_LSD1 src/20210224_LSD1.cpp src/lsd.h src/lsd.c)
+add_dependencies(20210224_LSD1 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210224_LSD1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210224_LSD1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210226 FLD(Fast Line Detector) 
+add_executable(20210226_FLD1 src/20210226_FLD1.cpp)
+add_dependencies(20210226_FLD1 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210226_FLD1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210226_FLD1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210226 FLD(Fast Line Detector) 
+add_executable(20210226_FLD_camera src/20210226_FLD_camera.cpp)
+add_dependencies(20210226_FLD_camera ${PROJECT_NAME}_gencfg)
+add_dependencies(20210226_FLD_camera ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210226_FLD_camera ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210226 FLD(Fast Line Detector) copy
+add_executable(20210226_FLD_camera2 src/FLD/20210226_FLD_camera2.cpp)
+add_dependencies(20210226_FLD_camera2 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210226_FLD_camera2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210226_FLD_camera2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210226 FLD(Fast Line Detector) copy
+add_executable(20210226_FLD_camera_Hough src/FLD/20210226_FLD_camera_Hough.cpp)
+add_dependencies(20210226_FLD_camera_Hough ${PROJECT_NAME}_gencfg)
+add_dependencies(20210226_FLD_camera_Hough ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210226_FLD_camera_Hough ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210227 FLD(Fast Line Detector) copy
+add_executable(20210226_FLD_camera_Hough2 src/FLD/20210226_FLD_camera_Hough2.cpp)
+add_dependencies(20210226_FLD_camera_Hough2 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210226_FLD_camera_Hough2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210226_FLD_camera_Hough2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210227 FLD(Fast Line Detector) copy
+add_executable(20210226_FLD_camera_Hough3 src/FLD/20210226_FLD_camera_Hough3.cpp)
+add_dependencies(20210226_FLD_camera_Hough3 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210226_FLD_camera_Hough3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210226_FLD_camera_Hough3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210420 saisyounizyouhou
+add_executable(L2_sp src/L2_sp3/L2_sp.cpp)
+add_dependencies(L2_sp ${PROJECT_NAME}_gencfg)
+add_dependencies(L2_sp ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(L2_sp ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210420 saisyounizyouhou_testVer
+#add_executable(L2_sp_test src/L2_sp3/L2_sp_test.cpp)
+#add_dependencies(L2_sp_test ${PROJECT_NAME}_gencfg)
+#add_dependencies(L2_sp_test ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(L2_sp_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210422 test_Eigen
+add_executable(test_Eigen src/test_Eigen.cpp)
+add_dependencies(test_Eigen ${PROJECT_NAME}_gencfg)
+add_dependencies(test_Eigen ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_Eigen ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210426 saisyou zizyouhou _test_3honnVer
+add_executable(20210426_L2_sp3_test src/L2_sp3/20210426_L2_sp3_test.cpp)
+add_dependencies(20210426_L2_sp3_test ${PROJECT_NAME}_gencfg)
+add_dependencies(20210426_L2_sp3_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210426_L2_sp3_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210429 test_Eigen2
+add_executable(test_Eigen2 src/test_Eigen2.cpp)
+add_dependencies(test_Eigen2 ${PROJECT_NAME}_gencfg)
+add_dependencies(test_Eigen2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_Eigen2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210503 test_Eigen2 copy
+add_executable(test_Eigen3 src/test_Eigen3.cpp)
+add_dependencies(test_Eigen3 ${PROJECT_NAME}_gencfg)
+add_dependencies(test_Eigen3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_Eigen3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210503 20210426_L2_sp3_test copy 
+add_executable(20210503_L2_sp3_test src/L2_sp3/20210503_L2_sp3_test.cpp)
+add_dependencies(20210503_L2_sp3_test ${PROJECT_NAME}_gencfg)
+add_dependencies(20210503_L2_sp3_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210503_L2_sp3_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210503 test_Eigen_saisyou copy
+add_executable(test_Eigen_saisyou src/test_Eigen_saisyou.cpp)
+add_dependencies(test_Eigen_saisyou ${PROJECT_NAME}_gencfg)
+add_dependencies(test_Eigen_saisyou ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_Eigen_saisyou ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210507 20210226_FLD_camera_Hough3 copy
+add_executable(20210507_FLD_camera_Hough3 src/FLD/20210507_FLD_camera_Hough3.cpp)
+add_dependencies(20210507_FLD_camera_Hough3 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210507_FLD_camera_Hough3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210507_FLD_camera_Hough3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210510 20210503_L2_sp3_test copy Ver_test
+add_executable(20210510_L2_sp3_test src/L2_sp3/20210510_L2_sp3_test.cpp)
+add_dependencies(20210510_L2_sp3_test ${PROJECT_NAME}_gencfg)
+add_dependencies(20210510_L2_sp3_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210510_L2_sp3_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210510 20210510_L2_sp3_test copy Ver_realtime 
+add_executable(20210510_L2_sp3_realt src/L2_sp3/20210510_L2_sp3_realt.cpp)
+add_dependencies(20210510_L2_sp3_realt ${PROJECT_NAME}_gencfg)
+add_dependencies(20210510_L2_sp3_realt ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210510_L2_sp3_realt ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210511 20210510_L2_sp3_test copy Ver_test2
+add_executable(20210511_L2_sp3_test src/L2_sp3/20210511_L2_sp3_test.cpp)
+add_dependencies(20210511_L2_sp3_test ${PROJECT_NAME}_gencfg)
+add_dependencies(20210511_L2_sp3_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210511_L2_sp3_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210511 20210507_FLD_camera_Hough3 copy
+add_executable(20210511_FLD_camera_Hough3 src/FLD/20210511_FLD_camera_Hough3.cpp)
+add_dependencies(20210511_FLD_camera_Hough3 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210511_FLD_camera_Hough3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210511_FLD_camera_Hough3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210517 20210511_FLD_camera_Hough3 copy ver_depth
+add_executable(20210517_FLD_depth src/FLD/20210517_FLD_depth.cpp)
+add_dependencies(20210517_FLD_depth ${PROJECT_NAME}_gencfg)
+add_dependencies(20210517_FLD_depth ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210517_FLD_depth ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210518 lines_prm2 copy VerFLD+HoughP
+add_executable(lines_prm3 src/lines_prm3.cpp)
+add_dependencies(lines_prm3 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210519 RealsenseD435 Depth adjustment program
+add_executable(D435_test src/test/D435_test.cpp)
+add_dependencies(D435_test ${PROJECT_NAME}_gencfg)
+add_dependencies(D435_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(D435_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210520 20210517_FLD_depth + D435_test
+add_executable(20210520_FLD_depth2 src/FLD/20210520_FLD_depth2.cpp)
+add_dependencies(20210520_FLD_depth2 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210520_FLD_depth2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210520_FLD_depth2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210521 lines_prm3 copy Ver lines_prm3 + D435_test
+#add_executable(lines_prm4 src/prm/lines_prm4.cpp)
+#add_dependencies(lines_prm4 ${PROJECT_NAME}_gencfg)
+#add_dependencies(lines_prm4 ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(lines_prm4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210521 lines_prm4 copy Ver OpenCV->Eigen
+add_executable(lines_prm5 src/prm/lines_prm5.cpp)
+add_dependencies(lines_prm5 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm5 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm5 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210524 lines_prm6 copy Ver lines_prm5 + FLD(tate,yoko,naname)
+add_executable(lines_prm6 src/prm/lines_prm6.cpp)
+add_dependencies(lines_prm6 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm6 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm6 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210524 20210520_FLD_depth copy Ver A[][][][]
+add_executable(20210524_FLD_depth2 src/FLD/20210524_FLD_depth2.cpp)
+add_dependencies(20210524_FLD_depth2 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210524_FLD_depth2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210524_FLD_depth2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210525 lines_prm6 copy Ver Eigen
+add_executable(lines_prm7 src/prm/lines_prm7.cpp)
+add_dependencies(lines_prm7 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm7 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm7 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

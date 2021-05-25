@@ -81,34 +81,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
     depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
 
-    //オプティカルフローに送る画像データを代入
-
-    
-    // struct_slam::MaskImageData image_data;//image_data(トピック送信用）
-    // int width,height;
-    // float res,mapwidth=8,mapheight=8;
-    // width = bridgeRGBImage->image.cols;//列のピクセル数
-    // height = bridgeRGBImage->image.rows;//行のピクセル数
-    // res=0.05;//マップサイズ調整
-
-    // image_data.header = bridgeRGBImage->header;
-    // image_data.mapWidth.data = mapwidth;
-    // image_data.mapHeight.data = mapheight;
-    // image_data.index.resize(width*height);//indexは総ピクセル数
-    // image_data.pt.resize(width*height);//indexは総ピクセル数
-
-    // image_data.mapRes.data = res;
-    // image_data.mapWidthInt.data = (int)(width/res);
-    // image_data.mapHeightInt.data = (int)(height/res);
-     /*for (int i=0; i<=width; ++i) {
-     for (int j=0;j<height; ++j) {
-       image_data.pt.resize(width*height);//indexは総ピクセル数
-       image_data.pt[].x = i;
-       image_data.pt[].y = j;
-       image_data.pt[].z = img_depth.at<float>;
-     }}*/
-
-
 
 //ここに処理項目
 	  cv::Mat img_src = RGBimage;
@@ -293,8 +265,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
             }
         }
       std::cout <<"C["<<t+1<<"]="<< c[t] << std::endl;
-     
     } 
+
     visualization_msgs::Marker line_list;
     line_list.header.frame_id = "/robot1/camera_link";
     line_list.header.stamp = ros::Time::now();
@@ -326,33 +298,16 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     double va[10][10],vb[10][10],P[3][20][2][4];
 
     for(int j=0;j<=t;j++){
-        std::cout <<"線の総数["<<j<<"]= "<<c[j]<< std::endl;
+        std::cout <<"線Aの総数["<<j<<"]= "<<c[j]<< std::endl;
         std::cout <<"グループ番号= "<<j<< std::endl;
         int i2=0;
+        std::cout <<"初期化i2= "<<i2<< std::endl;
       for(int i=0;i<c[j];i++){
         if(A[j][i][0][0]>=0 && A[j][i][0][1]>=0){//画像座標uの値が0以上の時のみに実行(画像座標データの損失を考慮)
         if(A[j][i][1][0]>=0 && A[j][i][1][1]>=0){//画像座標vの値が0以上の時のみに実行(画像座標データの損失を考慮)
           if(A[j][i][0][2]>0 && A[j][i][1][2]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
-          //Aはthetaの数値セット
-          
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][0]= "<<A[j][i][0][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][x]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][1]= "<<A[j][i][0][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][y]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][2]= "<<A[j][i][0][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][z]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][0][3]= "<<A[j][i][0][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][θ]
-
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][0]= "<<A[j][i][1][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][x]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][1]= "<<A[j][i][1][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][y]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][2]= "<<A[j][i][1][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][z]
-          std::cout <<"チェックA["<<j<<"]["<<i<<"][1][3]= "<<A[j][i][1][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][θ]
-          
-           }}}//if文last
-        }//for文 i最後
-        std::cout <<"  "<< std::endl;//改行
-      for(int i=0;i<c[j];i++){
-        if(A[j][i][0][0]>=0 && A[j][i][0][1]>=0){//画像座標uの値が0以上の時のみに実行(画像座標データの損失を考慮)
-        if(A[j][i][1][0]>=0 && A[j][i][1][1]>=0){//画像座標vの値が0以上の時のみに実行(画像座標データの損失を考慮)
-          if(A[j][i][0][2]>0 && A[j][i][1][2]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
-          if(i!=0){i2=i2+1;}//Pの線番号の更新
+          //if(i!=0){i2=i2+1;}//Pの線番号の更新
+          std::cout <<"カウントアップi2= "<<i2<< std::endl;
 
           //上のが要素によって覗かれるので連番にならない、そこで次の工程で連番にする
           P[j][i2][0][0]=A[j][i][0][0],P[j][i2][1][0]=A[j][i][1][0];
@@ -369,17 +324,22 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           std::cout <<"チェックP["<<j<<"]["<<i2<<"][1][1]= "<<P[j][i2][1][1]<< std::endl;//P[グループ番号][個数番号][点1or点2][y]
           std::cout <<"チェックP["<<j<<"]["<<i2<<"][1][2]= "<<P[j][i2][1][2]<< std::endl;//P[グループ番号][個数番号][点1or点2][z]
           std::cout <<"チェックP["<<j<<"]["<<i2<<"][1][3]= "<<P[j][i2][1][3]<< std::endl;//P[グループ番号][個数番号][点1or点2][θ]
+          //ここでi2回回しているつまり、i2個線が存在するということである  
+          i2=i2+1;
+          }}}//if文last
+        }//for文 i最後
+        std::cout <<"有効線Pの総数["<<j<<"]= "<<i2<< std::endl;
 
-
+        for(int i=0;i<i2;i++){
           //一次関数のaとbの要素を求めている
-          va[j][i]=(A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0]);
-          vb[j][i]=A[j][i][0][1]-(A[j][i][0][0]*((A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0])));
+          va[j][i]=(P[j][i][0][1]-P[j][i][1][1])/(P[j][i][0][0]-P[j][i][1][0]);
+          vb[j][i]=P[j][i][0][1]-(P[j][i][0][0]*((P[j][i][0][1]-P[j][i][1][1])/(P[j][i][0][0]-P[j][i][1][0])));
 
           //消失点ラインの描写
           double u0,v0,v640;
         
-            v0=A[j][i][0][1]-(A[j][i][0][0]*((A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0])));//v軸との交点(0,v0)
-            u0=A[j][i][0][0]-(A[j][i][0][1]*((A[j][i][0][0]-A[j][i][1][0])/(A[j][i][0][1]-A[j][i][1][1])));//u軸との交点(u0,0)
+            v0=P[j][i][0][1]-(P[j][i][0][0]*((P[j][i][0][1]-P[j][i][1][1])/(P[j][i][0][0]-P[j][i][1][0])));//v軸との交点(0,v0)
+            u0=P[j][i][0][0]-(P[j][i][0][1]*((P[j][i][0][0]-P[j][i][1][0])/(P[j][i][0][1]-P[j][i][1][1])));//u軸との交点(u0,0)
             if(v0<=0||u0<=0){
               //uとvがマイナスになってしまう場合
               //(640,v640)画面端との交点
@@ -389,20 +349,20 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           
 
           geometry_msgs::Point p;
-          p.x = A[j][i][0][0]*0.007;
-          p.z = A[j][i][0][1]*0.007;
-          p.y = A[j][i][0][2]*0.01;
+          p.x = P[j][i][0][0]*0.007;
+          p.z = P[j][i][0][1]*0.007;
+          p.y = P[j][i][0][2]*0.01;
             // ラインリストは、各ラインに2点必要
           line_list.points.push_back(p);
-          p.x =A[j][i][1][0]*0.007;
-          p.z =A[j][i][1][1]*0.007;
-          p.y =A[j][i][1][2]*0.01;
+          p.x =P[j][i][1][0]*0.007;
+          p.z =P[j][i][1][1]*0.007;
+          p.y =P[j][i][1][2]*0.01;
           line_list.points.push_back(p);
 
           int R,G,B;
           double ro,rox1,rox2;
 
-          ro=A[j][i][0][0]*cos(A[j][i][0][2])+A[j][i][0][1]*sin(A[j][i][0][2]);
+          ro=P[j][i][0][0]*cos(P[j][i][0][2])+P[j][i][0][1]*sin(P[j][i][0][2]);
           rox1=ro-1000;
           rox2=ro+1000;
 
@@ -417,17 +377,17 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           line_list.color.a = 1.0;
 
          if(lines.size()!=0){ 
-             cv::line(img_dst,cv::Point(A[j][i][0][0],A[j][i][0][1]), cv::Point(A[j][i][1][0],A[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
-             cv::line(img_line,cv::Point(A[j][i][0][0],A[j][i][0][1]), cv::Point(A[j][i][1][0],A[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
+             cv::line(img_dst,cv::Point(P[j][i][0][0],P[j][i][0][1]), cv::Point(P[j][i][1][0],P[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
+             cv::line(img_line,cv::Point(P[j][i][0][0],P[j][i][0][1]), cv::Point(P[j][i][1][0],P[j][i][1][1]), cv::Scalar(B,G,R), 4, cv::LINE_AA);
              cv::line(img_line,cv::Point(rox1,1000), cv::Point(rox2,1000), cv::Scalar(B,G,R), 2, cv::LINE_AA);
          
              //ラインが垂直の時
-            if(A[j][i][0][0]==A[j][i][1][0]){
+            if(P[j][i][0][0]==P[j][i][1][0]){
             cv::line(img_dst,cv::Point(u0,0), cv::Point(u0,480), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             cv::line(img_line,cv::Point(u0,0), cv::Point(u0,480), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             }
             //ラインが水平の時
-            else if(A[j][i][0][1]==A[j][i][1][1]){
+            else if(P[j][i][0][1]==P[j][i][1][1]){
             cv::line(img_dst,cv::Point(0,v0), cv::Point(640,v0), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             cv::line(img_line,cv::Point(0,v0), cv::Point(640,v0), cv::Scalar(0,0,0), 1, cv::LINE_AA);
             }
@@ -447,26 +407,159 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
              }
 
           marker_pub.publish(line_list);
-          // image_pub.publish(image_data);
-          
-          }}}//if文last
-        }//for文 i最後
-        int vn=0,vm=0;
-        double Vx[5][10][10],Vy[5][10][10];
-         for(int i=0;i<c[j];i++){
+          // image_pub.publish(image_data)
+        }
+       
+        int vn=0,vm=0,vf=0,Vp[300];
+        double Vx[5][10][10],Vy[5][10][10],Vr[5][10][10],Vxn[5][150],Vyn[5][150],Vrn[5][150];
+         //for(int i=0;i<i2;i++){
           //一次関数の交点
-          if(i!=0){
-            for(vn=0;vn<=t-1;vn++){
-            for(vm=vn+1;vm<=t;vm++){
+          //有効線Pの総数はi2
+          //if(i!=0){
+            Vp[j]=0;//交点番号
+            for(vn=0;vn<=i2-2;vn++){
+            for(vm=vn+1;vm<=i2-1;vm++){
              Vx[j][vn][vm]=-((vb[j][vn]-vb[j][vm])/(va[j][vn]-va[j][vm]));
              Vy[j][vn][vm]=va[j][vn]*Vx[j][vn][vm]+vb[j][vn];
              std::cout <<"一次関数の交点Vx["<<j<<"]["<<vn<<"]["<<vm<<"]= "<<Vx[j][vn][vm]<< std::endl;
              std::cout <<"一次関数の交点Vy["<<j<<"]["<<vn<<"]["<<vm<<"]= "<<Vy[j][vn][vm]<< std::endl;
              cv::circle(img_line,Point(Vx[j][vn][vm],Vy[j][vn][vm]),8,Scalar(0,0,255),-1);//赤点(一次関数交点画像座標)
+             Vr[j][vn][vm]=sqrt(Vx[j][vn][vm]*Vx[j][vn][vm]+Vy[j][vn][vm]*Vy[j][vn][vm]);//交点から原点までの距離
+             std::cout <<"原点から交点までの距離Vr["<<j<<"]["<<vn<<"]["<<vm<<"]= "<<Vr[j][vn][vm]<< std::endl;
+             std::cout <<"交点番号基準に並び替える"<< std::endl;
+             std::cout <<"交点番号n["<<j<<"]= "<<Vp[j]<< std::endl;
+
+             //交点番号基準に配列を書き換える
+             Vxn[j][Vp[j]]=Vx[j][vn][vm];
+             Vyn[j][Vp[j]]=Vy[j][vn][vm];
+             Vrn[j][Vp[j]]=Vr[j][vn][vm];//原点から交点までの距離（交点番号配列）
+             std::cout <<"一次関数の交点Vxn["<<j<<"]["<<Vp[j]<<"]= "<<Vxn[j][Vp[j]]<< std::endl;
+             std::cout <<"一次関数の交点Vyn["<<j<<"]["<<Vp[j]<<"]= "<<Vyn[j][Vp[j]]<< std::endl;
+             std::cout <<"原点から交点までの距離Vrn["<<j<<"]["<<Vp[j]<<"]= "<<Vrn[j][Vp[j]]<< std::endl;
+             Vp[j]=Vp[j]+1;
               }
             }
-          }
-         }
+            std::cout <<"交点の総個数Vp["<<j<<"]="<<Vp[j]<< std::endl;
+
+        //一次関数の交点を距離を利用してクラスタリングする
+        //交点の(Vx,Vy)の数値を小さいにソート 
+        //交点(Vx,Vy)を原点からの距離Vrで並び替える
+        double tmpVx,tmpVy,tmpVr;
+        for (int vs=0; vs<=Vp[j]; ++vs) {
+        for (int vt=vs+1;vt<Vp[j]; ++vt) {
+         if (Vrn[j][vs] > Vrn[j][vt]) {
+                   tmpVx = Vxn[j][vs];
+                   tmpVy = Vyn[j][vs];
+                   tmpVr = Vrn[j][vs];
+
+                   Vxn[j][vs]= Vxn[j][vt];
+                   Vyn[j][vs]= Vyn[j][vt];
+                   Vrn[j][vs]= Vrn[j][vt];
+
+                   Vxn[j][vt] = tmpVx;
+                   Vyn[j][vt] = tmpVy;
+                   Vrn[j][vt] = tmpVr;
+                  }
+                  }
+              }
+        for (int vs=0; vs<=Vp[j]; ++vs) {
+          std::cout <<"確認一次関数の交点Vxn["<<j<<"]["<<vs<<"]= "<<Vxn[j][vs]<< std::endl;
+             std::cout <<"確認一次関数の交点Vyn["<<j<<"]["<<vs<<"]= "<<Vyn[j][vs]<< std::endl;
+             std::cout <<"確認原点から交点までの距離Vrn["<<j<<"]["<<vs<<"]= "<<Vrn[j][vs]<< std::endl;
+        }
+          
+/*
+        //並び替えした数値を出力
+        //printf("昇順ソートした数値\n");
+        //for (int i=0; i<lines1.size(); ++i){ printf("lines[%d][1]=%f\n", i,lines1[i][1]); }
+          int c[20],t,j,p;
+          double A[20][20][2][4],B;
+          c[0]=1,t=0,j=1,p=0;
+
+          if(lines.size()>0){
+          A[0][0][0][0]=lines[0][0];
+          A[0][0][0][1]=lines[0][1];
+          A[0][0][0][2]=dep1[0];
+          A[0][0][0][3]=theta[0];
+
+          A[0][0][1][0]=lines[0][2];
+          A[0][0][1][1]=lines[0][3];
+          A[0][0][1][2]=dep2[0];
+          A[0][0][1][3]=theta[0];
+
+
+          B=theta[0];}
+          std::cout <<"初期値B[0]= "<<B<< std::endl;
+          std::cout <<"初期値C[0]= "<<c[0]<< std::endl;
+
+
+          //グルーピング
+          for(int i = 0; i < lines.size(); i++){
+          
+              std::cout <<"lines["<<i<<"][0]= "<<lines[i][0]<< std::endl;
+              std::cout <<"lines["<<i<<"][1]= "<<lines[i][1]<< std::endl;
+              std::cout <<"B["<<i<<"]= "<<B<< std::endl;
+
+              //前の番号と同じ数値
+              if( B==theta[i+1]){
+                  std::cout <<"theta["<<i+1<<"]= 同じ数値 "<< std::endl;
+                  A[t][j][0][0]=lines[i+1][0];//代入
+                  A[t][j][0][1]=lines[i+1][1];//代入
+                  A[t][j][0][2]=dep1[i+1];//代入
+                  A[t][j][0][3]=theta[i+1];//代入
+                  A[t][j][1][0]=lines[i+1][2];//代入
+                  A[t][j][1][1]=lines[i+1][3];//代入
+                  A[t][j][1][2]=dep2[i+1];//代入
+                  A[t][j][1][3]=theta[i+1];//代入
+                  j=j+1;//配列カウント
+                  c[t]=c[t]+1;//要素数（同じ数値は何個あるか）
+              }
+              //前の番号と異なる数値
+              else{
+              
+                if(theta[i+1]-B>0.3){//前の角度との差が0.5より大きい
+                   std::cout <<"theta["<<i+1<<"]= 異なる数値 "<< std::endl;
+                   std::cout <<"theta["<<i+1<<"]="<<theta[i+1]<< std::endl;
+                   std::cout <<"B="<<B<< std::endl;
+                   std::cout <<"theta[i+1]-B="<<theta[i+1]-B<< std::endl;
+
+                   t=t+1,j=0;//配列繰り上がり、ｊリセット
+                   A[t][j][0][0]=lines[i+1][0];//代入
+                   A[t][j][0][1]=lines[i+1][1];//代入
+                   A[t][j][0][2]=dep1[i+1];//代入
+                   A[t][j][0][3]=theta[i+1];//代入
+                   A[t][j][1][0]=lines[i+1][2];//代入
+                   A[t][j][1][1]=lines[i+1][3];//代入
+                   A[t][j][1][2]=dep2[i+1];//代入
+                   A[t][j][1][3]=theta[i+1];//代入
+                   B=theta[i+1];//基準の更新
+                   j=j+1;//配列カウント
+                   c[t]=0;//配列要素数初期値
+                  }
+
+                else{//前の角度との差が0.5以下
+                   std::cout <<"theta["<<i+1<<"]= ちょっと違う数値= "<<theta[i+1]-B<< std::endl;
+                   A[t][j][0][0]=lines[i+1][0];//代入
+                   A[t][j][0][1]=lines[i+1][1];//代入
+                   A[t][j][0][2]=dep1[i+1];//代入
+                   A[t][j][0][3]=theta[i+1];//代入
+                   A[t][j][1][0]=lines[i+1][2];//代入
+                   A[t][j][1][1]=lines[i+1][3];//代入
+                   A[t][j][1][2]=dep2[i+1];//代入
+                   A[t][j][1][3]=theta[i+1];//代
+                   B=theta[i+1];//基準の更新
+                   j=j+1;//配列カウント
+                   c[t]=c[t]+1;//要素数（同じ数値は何個あるか）
+                  }
+              }
+            std::cout <<"C["<<t+1<<"]="<< c[t] << std::endl;
+
+          } 
+            
+
+
+          //}
+        // }*/
     }//for文 j最後
 
 

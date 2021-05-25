@@ -1,4 +1,6 @@
 //内部パラメータ、外部パラメータの検出とカメラ座標から世界座標系への座標変換
+//FLD化済み
+//Depth調整バージョン(D435_test.cppを参照)
 //rosのヘッダ
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>//センサーデータ形式ヘッダ
@@ -23,6 +25,7 @@
 #include <cmath>
 #include <struct_slam/MaskImageData.h>//パッケージ名要変更（自分で作ったデータを取り込んで）
 #include <struct_slam/ImageMatchingData.h>
+#include <opencv2/ximgproc/fast_line_detector.hpp>//FLD
 
 
 ros::Subscriber sub;//データをsubcribeする奴
@@ -87,6 +90,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     std::cout << "kaisu=" << kaisu << std::endl;
     RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
     depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
+
 
 //画像マッチング（パラメータ推定）
   cv::Mat img_prm[2], img_prmw[2], img_match, img_per, img_reg;
@@ -190,26 +194,47 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 //ここに処理項目
 	  cv::Mat img_src = bridgeRGBImage->image.clone();
     cv::Mat img_depth = depthimage;
-    cv::Mat img_gray,img_edge,img_dst,img_dst2;
+    cv::Mat img_gray,img_gray2,img_edge,img_dst,img_dst2;
     cv::Mat img_line,img_line1;
+    cv::Mat img_depth2,img_depth3,img_depth4;
 
     img_src.copyTo(img_dst);
     img_src.copyTo(img_dst2);
+
+        //Depth修正
+    img_depth2 = img_depth.clone();//depthの画像をコピーする
+    //画像クロップ(中距離でほぼ一致)
+    cv::Rect roi(cv::Point(110, 95), cv::Size(640/1.6, 480/1.6));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
+    cv::Mat img_dstdepth = img_depth(roi); // 切り出し画像
+    resize(img_dstdepth, img_depth3,cv::Size(), 1.6, 1.6);//クロップした画像を拡大
+    img_depth4 = img_depth3.clone();//depth3の画像をコピーする
     
     cv::cvtColor(img_src, img_gray, cv::COLOR_RGB2GRAY);
 
-    cv::Canny(img_gray, img_edge, 200, 200);
 
     float dep,dep1[100],dep2[100];
     double theta[100];
+    //Y軸との角度(詳しくは2月の研究ノート)
+   // theta0=M_PI-atan2((200-0),(100-100));//水平(θ=π/2=1.5708)
+    //theta90=M_PI-atan2((100-100),(200-0));//垂直(θ=π=3.14159)  
     
     //ラインだけの画像を作るために単色で塗りつぶした画像を用意する
     img_line = img_src.clone();
     img_line = cv::Scalar(255,255,255);
 
-    //標準的ハフ変換1(元画像・lines0)
-    std::vector<cv::Vec2f> lines0;
-    cv::HoughLines(img_edge, lines0, 1, CV_PI/180, 120);
+    //FLD変換
+    std::vector<cv::Vec4f> lines0;
+    cv::Ptr<cv::ximgproc::FastLineDetector> fld =  cv::ximgproc::createFastLineDetector();//特徴線クラスオブジェクトを作成
+    fld->detect( img_gray, lines0);//特徴線検索
+
+    //FLDの線描写
+    for(int i = 0; i < lines0.size(); i++){
+       cv::line(img_dst,cv::Point(lines0[i][0],lines0[i][1]),cv::Point(lines0[i][2],lines0[i][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);  
+       cv::line(img_line,cv::Point(lines0[i][0],lines0[i][1]),cv::Point(lines0[i][2],lines0[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA); 
+       //cv::line(img_line2,cv::Point(lines0[i][0],lines0[i][1]),cv::Point(lines0[i][2],lines0[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
+    }
+    cv::cvtColor(img_line, img_gray2, cv::COLOR_RGB2GRAY);
+    cv::Canny(img_gray2, img_edge, 200, 200);
 
     //確率的ハフ変換(元画像・lines)
     std::vector<cv::Vec4i> lines;
@@ -217,8 +242,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
     //確率的ハフ変換座標と三次元距離データの結合と画像描写
     for(int i = 0; i < lines.size(); i++){
-        dep1[i]= img_depth.at<float>(lines[i][0],lines[i][1]);//点の三次元距離データ取得
-        dep2[i]= img_depth.at<float>(lines[i][2],lines[i][3]);
+        dep1[i]= img_depth3.at<float>(lines[i][0],lines[i][1]);//点の三次元距離データ取得
+        dep2[i]= img_depth3.at<float>(lines[i][2],lines[i][3]);
 
         if(dep1[i]>0 && dep2[i]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
           dep= dep1[i] - dep2[i];
@@ -485,6 +510,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           cv::Mat C2 = Vinv * u2;
           std::cout << "C1=\n" << C1 << std::endl;
           std::cout << "C2=\n" << C2 << std::endl;
+          //putText(img_line,"C1=("+std::to_string(C1(0,0))+std::to_string(C1.cv::Mat::col(0))+std::to_string(C1.cv::Mat::col(1)),Point(A[j][i][0][0],A[j][i][0][1]),0,0.5,Scalar(0,255,255),1);
+          //putText(img_line,"C2=("+std::to_string(C2(0,0))+std::to_string(C2(0,1))+std::to_string(C2(0,2)),Point(A[j][i][1][0],A[j][i][1][1]),0,0.5,Scalar(0,255,255),1);
 
           //カメラ座標系を斉次化
           C1.resize(4);//配列の行要素を増やす（でも０しか入れられない）

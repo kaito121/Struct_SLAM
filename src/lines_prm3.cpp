@@ -23,6 +23,7 @@
 #include <cmath>
 #include <struct_slam/MaskImageData.h>//パッケージ名要変更（自分で作ったデータを取り込んで）
 #include <struct_slam/ImageMatchingData.h>
+#include <opencv2/ximgproc/fast_line_detector.hpp>//FLD
 
 
 ros::Subscriber sub;//データをsubcribeする奴
@@ -190,7 +191,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 //ここに処理項目
 	  cv::Mat img_src = bridgeRGBImage->image.clone();
     cv::Mat img_depth = depthimage;
-    cv::Mat img_gray,img_edge,img_dst,img_dst2;
+    cv::Mat img_gray,img_gray2,img_edge,img_dst,img_dst2;
     cv::Mat img_line,img_line1;
 
     img_src.copyTo(img_dst);
@@ -198,18 +199,30 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     
     cv::cvtColor(img_src, img_gray, cv::COLOR_RGB2GRAY);
 
-    cv::Canny(img_gray, img_edge, 200, 200);
 
     float dep,dep1[100],dep2[100];
     double theta[100];
+    //Y軸との角度(詳しくは2月の研究ノート)
+   // theta0=M_PI-atan2((200-0),(100-100));//水平(θ=π/2=1.5708)
+    //theta90=M_PI-atan2((100-100),(200-0));//垂直(θ=π=3.14159)  
     
     //ラインだけの画像を作るために単色で塗りつぶした画像を用意する
     img_line = img_src.clone();
     img_line = cv::Scalar(255,255,255);
 
-    //標準的ハフ変換1(元画像・lines0)
-    std::vector<cv::Vec2f> lines0;
-    cv::HoughLines(img_edge, lines0, 1, CV_PI/180, 120);
+    //FLD変換
+    std::vector<cv::Vec4f> lines0;
+    cv::Ptr<cv::ximgproc::FastLineDetector> fld =  cv::ximgproc::createFastLineDetector();//特徴線クラスオブジェクトを作成
+    fld->detect( img_gray, lines0);//特徴線検索
+
+    //FLDの線描写
+    for(int i = 0; i < lines0.size(); i++){
+       cv::line(img_dst,cv::Point(lines0[i][0],lines0[i][1]),cv::Point(lines0[i][2],lines0[i][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);  
+       cv::line(img_line,cv::Point(lines0[i][0],lines0[i][1]),cv::Point(lines0[i][2],lines0[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA); 
+       //cv::line(img_line2,cv::Point(lines0[i][0],lines0[i][1]),cv::Point(lines0[i][2],lines0[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
+    }
+    cv::cvtColor(img_line, img_gray2, cv::COLOR_RGB2GRAY);
+    cv::Canny(img_gray2, img_edge, 200, 200);
 
     //確率的ハフ変換(元画像・lines)
     std::vector<cv::Vec4i> lines;
