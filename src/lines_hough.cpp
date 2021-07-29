@@ -18,6 +18,7 @@
 #include <stdlib.h>//絶対値用関数
 #include <highgui.h>
 #include <visualization_msgs/Marker.h>//ラインマーカー用
+#include <nav_msgs/Odometry.h>
 #include <cmath>
 #include <struct_slam/MaskImageData.h>//パッケージ名要変更（自分で作ったデータを取り込んで）
 #include <struct_slam/ImageMatchingData.h>
@@ -25,6 +26,7 @@
 
 ros::Subscriber sub;//データをsubcribeする奴
 ros::Publisher marker_pub;
+ros::Publisher point_pub;
 // ros::Publisher image_pub;
 std::string win_src = "src";
 std::string win_edge = "edge";
@@ -80,6 +82,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     
     RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
     depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
+    
 
     //オプティカルフローに送る画像データを代入
 
@@ -295,31 +298,25 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       std::cout <<"C["<<t+1<<"]="<< c[t] << std::endl;
      
     } 
+
     visualization_msgs::Marker line_list;
     line_list.header.frame_id = "/robot1/camera_link";
     line_list.header.stamp = ros::Time::now();
     line_list.ns = "lines_hough";
     line_list.action = visualization_msgs::Marker::ADD;
     line_list.pose.orientation.w = 1.0;
-
-  
-
-
     line_list.id = 2;
+    line_list.type = visualization_msgs::Marker::LINE_LIST;//マーカーの種類
+    line_list.scale.x = 0.1;// LINE_STRIP/LINE_LIST マーカは、線幅に対してスケールの x 成分のみを使用します。// 大きさを決める
 
-    //マーカーの種類
-    line_list.type = visualization_msgs::Marker::LINE_LIST;
-
-    // 大きさを決める
-    // LINE_STRIP/LINE_LIST マーカは、線幅に対してスケールの x 成分のみを使用します。
-    line_list.scale.x = 0.1;
-
+    nav_msgs::Odometry point_odom;//オドメトリーメッセージ設定
+    point_odom.header.frame_id = "/robot1/camera_link";
+    point_odom.header.stamp = ros::Time::now(); 
+    
     /*//ここで色をつける;
     // Line list is red(ラインリストは赤)
     line_list.color.r = 1.0;
     line_list.color.a = 1.0;*/
-
-
 
     //グルーピングチェック
     std::cout <<"総グループ数= "<<t+1<< std::endl;
@@ -386,14 +383,38 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
               v640=va[j][i]*640+vb[j][i];
               //v640=((A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0]))*640+A[j][i][0][1]-(A[j][i][0][0]*((A[j][i][0][1]-A[j][i][1][1])/(A[j][i][0][0]-A[j][i][1][0])));
               }
-          
+
 
           geometry_msgs::Point p;
           p.x = A[j][i][0][0]*0.007;
           p.z = A[j][i][0][1]*0.007;
           p.y = A[j][i][0][2]*0.01;
-            // ラインリストは、各ラインに2点必要
+           // ラインリストは、各ラインに2点必要
           line_list.points.push_back(p);
+
+          //オドメトリーの位置
+          point_odom.pose.pose.position.x = A[j][i][0][0]*0.007;
+          point_odom.pose.pose.position.z = A[j][i][0][1]*0.007;
+          point_odom.pose.pose.position.y = A[j][i][0][2]*0.01;
+
+          //クオータニオンを使いたい時----------------------------------------------------------------
+          /*//オドメトリーの姿勢（クオータニオン）TFを使う
+          point_odom.pose.pose.orientation.x =
+          point_odom.pose.pose.orientation.y =
+          point_odom.pose.pose.orientation.z =
+          point_odom.pose.pose.orientation.w =
+
+          tf::Quaternion point_Q;//クオータニオンの定義
+          double r,p,y;//x軸回転、y軸回転、z軸回転のクオータニオン定義
+          //tfからクオータニオンに変換（tfだと計算しづらい）
+          quaternionMagToTF(point_odom.pose.pose.orientation,point_Q);//tfから角度変換（ラジアン）
+          tf::Matrix3x3(point_Q).getRPY(r,p,y);//r,p,yに変換した角度を代入
+
+          //クオータニオンからtfに変換(rviz表示はtf)
+          point_Q=tf::createQuaternionFromRPY(r,p,y);//r,p,yのデータをPoint_Qに代入
+          quaternionTFToMsg(point_Q,point_odom.pose.pose.orientation);//クオータニオンからtfに変換
+          -------------------------------------------------------------------------------------------------*/
+
           p.x =A[j][i][1][0]*0.007;
           p.z =A[j][i][1][1]*0.007;
           p.y =A[j][i][1][2]*0.01;
@@ -447,6 +468,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
              }
 
           marker_pub.publish(line_list);
+          point_pub.publish(point_odom);
           // image_pub.publish(image_data);
           
           }}}//if文last
@@ -508,6 +530,10 @@ int main(int argc,char **argv){
   ros::NodeHandle n;
   marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 10);
   // image_pub = n.advertise<sensor_msgs::Image>("maskImageData", 10);//realsenseの画像データをパブリッシュ
+  point_pub = n.advertise<nav_msgs::Odometry>("pointOdom",1);
+
+
+
 
   
 

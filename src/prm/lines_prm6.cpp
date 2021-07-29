@@ -601,6 +601,14 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     line_list.color.a = 1.0;*/
 
     double C1_D[4][200][3][0],C2_D[4][200][3][0];
+    //Eigenの定義
+      MatrixXd u1_E(3,1);
+      MatrixXd C1_E(3,1);
+      MatrixXd C2_E(3,1);
+      MatrixXd C1z_E(3,1);//距離情報を配列に代入
+      MatrixXd C2z_E(3,1);//距離情報を配列に代入
+      MatrixXd Wmap(3,1);//世界座標系の設定
+      MatrixXd Cmap(3,1);//カメラ座標系の設定
 
 
     //グルーピングチェック
@@ -658,13 +666,18 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           // image_pub.publish(image_data);
 
           //Eigenの定義
-          MatrixXd u1_E(0,3);
-          MatrixXd C1_E(0,3);
-          MatrixXd C2_E(0,3);
-          MatrixXd C1z_E(0,3);//距離情報を配列に代入
-          MatrixXd C2z_E(0,3);//距離情報を配列に代入
-          C1z_E(0,1)=0,C1z_E(0,2)=0,C1z_E(0,3)=A[j][i][0][2];
-          C2z_E(0,1)=0,C2z_E(0,2)=0,C2z_E(0,3)=A[j][i][1][2];
+          C1z_E(0,0)=0,C1z_E(1,0)=0,C1z_E(2,0)=A[j][i][0][2]-1;//-1してるのは距離情報を追加する際元データにある１を消すため
+          C2z_E(0,0)=0,C2z_E(1,0)=0,C2z_E(2,0)=A[j][i][1][2]-1;
+
+          cv::Mat C1z_M = (cv::Mat_<double>(3,1) << 0, 0, A[j][i][0][2]-1);
+          cv::Mat C2z_M = (cv::Mat_<double>(3,1) << 0, 0, A[j][i][1][2]-1);
+
+          std::cout << "C1z_M=" << C1z_M << std::endl << std::endl;
+          std::cout << "C1z_M=" << C2z_M << std::endl << std::endl;
+
+          /*if(kaisu==0){
+            Wmap(3,1)=0; Cmao(3,1)=0;
+           }*/
          
 
           //座標変換
@@ -702,9 +715,11 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           cv::cv2eigen(C2_1,C2_E);//cvMatからEigenに座標変換
           std::cout << "C1_E=\n" << C1_E << std::endl;
           std::cout << "C2_E=\n" << C2_E << std::endl;
+          std::cout << "C1z_E=\n" << C1z_E << std::endl;//距離データを追加する()
+          std::cout << "C2z_E=\n" << C2z_E << std::endl;
 
-          //std::cout << "C1_E+C1z_E=\n" << C1_E+C1z_E << std::endl;
-          //std::cout << "C2_E+C2z_E=\n" << C2_E+C2z_E << std::endl;
+          std::cout << "C1_E+C1z_E=\n" << C1_E+C1z_E << std::endl;
+          std::cout << "C2_E+C2z_E=\n" << C2_E+C2z_E << std::endl;
 
           std::cout << "C2_E(0,0)=\n" << C2_E(0,0) << std::endl;
           int nrow=3,ncol=0;
@@ -719,6 +734,9 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           
           C1_D[j][i][0][0]=C1_E(0,0),C1_D[j][i][1][0]=C1_E(1,0),C1_D[j][i][2][0]=C1_E(2,0);
           C2_D[j][i][0][0]=C2_E(0,0),C2_D[j][i][1][0]=C2_E(1,0),C2_D[j][i][2][0]=C2_E(2,0);
+
+          C1 = C1+C1z_M;
+          C2 = C2+C2z_M;
     
 
           //std::cout << "C2_D[0][0]=\n" << C2_D[0][0] << std::endl;
@@ -749,7 +767,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           C1 = C1+n0;//拡張した行列に1を足すことで斉次化
           C2 = C2+n0;
           std::cout << "C1_2=\n" << C1 << std::endl;
-          std::cout << "C2_2=\n" << C1 << std::endl;
+          std::cout << "C2_2=\n" << C2 << std::endl;
 
           //座標変換カメラ座標→世界座標系
           cv::Mat W1 = Rtinv * C1;

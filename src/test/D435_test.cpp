@@ -135,12 +135,12 @@ for(int i = 0; i < lines.size(); i++){
 
     cv::namedWindow(win_src, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_depth, cv::WINDOW_AUTOSIZE);
-    //cv::namedWindow(win_dst, cv::WINDOW_AUTOSIZE);
+    cv::namedWindow(win_dst, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_dst2, cv::WINDOW_AUTOSIZE);
 
     cv::imshow(win_src, img_src);
     cv::imshow(win_depth, img_depth);
-    //cv::imshow(win_dst, img_dst);
+    cv::imshow(win_dst, img_dst);
     cv::imshow(win_dst2, img_dst2);
 
 

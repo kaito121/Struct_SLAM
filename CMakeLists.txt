@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   sensor_msgs
   tf
+  nav_msgs
 )
 
 find_package(OpenCV REQUIRED)
@@ -73,6 +74,10 @@ add_message_files(
    ImageMatchingData.msg
    MaskImageData.msg
    ImageFlow2D.msg
+   ClassificationData.msg
+   ClassificationElement.msg
+   opt_point.msg
+
  )
 
 ## Generate services in the 'srv' folder
@@ -95,6 +100,7 @@ add_message_files(
    std_msgs 
    geometry_msgs 
    sensor_msgs   # Or other packages containing msgs
+   nav_msgs
  )
 
 ################################################
@@ -115,6 +121,7 @@ add_message_files(
  generate_dynamic_reconfigure_options(
    cfg/Depth_pcl.cfg
    cfg/imageMatching.cfg
+   cfg/classification.cfg
  )
 
 
@@ -273,6 +280,7 @@ target_link_libraries(HoughP_depth1_Ver2_3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIE
 add_executable(HoughP_depth1_Ver3 src/HoughP_depth1_Ver3.cpp)
 target_link_libraries(HoughP_depth1_Ver3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#Open CV gyouretu test
 add_executable(testtest src/testtest.cpp)
 target_link_libraries(testtest ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
@@ -347,6 +355,7 @@ target_link_libraries(points_and_lines ${catkin_LIBRARIES})
 add_executable(lines src/lines.cpp)
 target_link_libraries(lines ${catkin_LIBRARIES})
 
+#20210618 Ver odometry
 add_executable(lines_hough src/lines_hough.cpp)
 add_dependencies(lines_hough ${PROJECT_NAME}_gencfg)
 add_dependencies(lines_hough ${PROJECT_NAME}_generate_messages_cpp)
@@ -358,6 +367,7 @@ add_dependencies(lines_hough_test ${PROJECT_NAME}_gencfg)
 add_dependencies(lines_hough_test ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(lines_hough_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#12gatu calmanfilter note
 add_executable(carib src/carib.cpp)
 target_link_libraries(carib ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
@@ -544,7 +554,7 @@ add_dependencies(20210510_L2_sp3_realt ${PROJECT_NAME}_gencfg)
 add_dependencies(20210510_L2_sp3_realt ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(20210510_L2_sp3_realt ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
-#20210511 20210510_L2_sp3_test copy Ver_test2
+#20210511 20210510_L2_sp3_test copy Ver_test2+ Ver_Randamu
 add_executable(20210511_L2_sp3_test src/L2_sp3/20210511_L2_sp3_test.cpp)
 add_dependencies(20210511_L2_sp3_test ${PROJECT_NAME}_gencfg)
 add_dependencies(20210511_L2_sp3_test ${PROJECT_NAME}_generate_messages_cpp)
@@ -604,8 +614,321 @@ add_dependencies(20210524_FLD_depth2 ${PROJECT_NAME}_gencfg)
 add_dependencies(20210524_FLD_depth2 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(20210524_FLD_depth2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
-#20210525 lines_prm6 copy Ver Eigen
-add_executable(lines_prm7 src/prm/lines_prm7.cpp)
-add_dependencies(lines_prm7 ${PROJECT_NAME}_gencfg)
-add_dependencies(lines_prm7 ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(lines_prm7 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#20210527 OpticalFlow test
+add_executable(OpticalFlow0 src/OptF/OpticalFlow0.cpp)
+add_dependencies(OpticalFlow0 ${PROJECT_NAME}_gencfg)
+add_dependencies(OpticalFlow0 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(OpticalFlow0 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210527 OpticalFlow test
+add_executable(OpticalFlow1 src/OptF/OpticalFlow1.cpp)
+add_dependencies(OpticalFlow1 ${PROJECT_NAME}_gencfg)
+add_dependencies(OpticalFlow1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(OpticalFlow1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210527 OpticalFlow test
+#add_executable(OpticalFlow2 src/OptF/OpticalFlow2.cpp)
+#add_dependencies(OpticalFlow2 ${PROJECT_NAME}_gencfg)
+#add_dependencies(OpticalFlow2 ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(OpticalFlow2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210529 20210510_L2_sp3_test copy Ver_realtime
+add_executable(20210529_L2_sp3_camera src/L2_sp3/20210529_L2_sp3_camera.cpp)
+add_dependencies(20210529_L2_sp3_camera ${PROJECT_NAME}_gencfg)
+add_dependencies(20210529_L2_sp3_camera ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210529_L2_sp3_camera ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})     
+
+#20210531 Kalman filter test
+add_executable(Kal_t1 src/OptF/Kal_t1.cpp)
+add_dependencies(Kal_t1 ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+##20210601 camera_video_save 
+#add_executable(CVS src/OptF/CVS.cpp)
+#add_dependencies(CVS ${PROJECT_NAME}_gencfg)
+#add_dependencies(CVS ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(CVS ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210601 tuiseki http://cvwww.ee.ous.ac.jp/opencv_practice5/#3.1
+add_executable(tuiseki src/OptF/tuiseki.cpp)
+add_dependencies(tuiseki ${PROJECT_NAME}_gencfg)
+add_dependencies(tuiseki ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(tuiseki ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210601 tuiseki Ver realtime http://cvwww.ee.ous.ac.jp/opencv_practice5/#3.1
+add_executable(tuiseki_camera src/OptF/tuiseki_camera.cpp)
+add_dependencies(tuiseki_camera ${PROJECT_NAME}_gencfg)
+add_dependencies(tuiseki_camera ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(tuiseki_camera ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210601 matching  http://cvwww.ee.ous.ac.jp/opencv_practice5/#3.1
+add_executable(matching_camera src/OptF/matching_camera.cpp)
+add_dependencies(matching_camera ${PROJECT_NAME}_gencfg)
+add_dependencies(matching_camera ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(matching_camera ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210601 ORB_matching Ver realtime
+add_executable(lines_prm_ORB src/OptF/lines_prm_ORB.cpp)
+add_dependencies(lines_prm_ORB ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm_ORB ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm_ORB ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210602 ORB_matching Ver realtime
+add_executable(lines_prm_ORB2 src/prm/lines_prm_ORB2.cpp)
+add_dependencies(lines_prm_ORB2 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm_ORB2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm_ORB2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210602 template1_matching 
+add_executable(template1 src/OptF/template1.cpp)
+add_dependencies(template1 ${PROJECT_NAME}_gencfg)
+add_dependencies(template1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210602 tuiseki Ver realtime1 http://cvwww.ee.ous.ac.jp/opencv_practice5/#3.1
+add_executable(tuiseki_camera1 src/OptF/tuiseki_camera1.cpp)
+add_dependencies(tuiseki_camera1 ${PROJECT_NAME}_gencfg)
+add_dependencies(tuiseki_camera1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(tuiseki_camera1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210602 tuiseki Ver realtime1_1 http://cvwww.ee.ous.ac.jp/opencv_practice5/#3.1
+#add_executable(tuiseki_camera1_1 src/OptF/tuiseki_camera1_1.cpp)
+#add_dependencies(tuiseki_cadd_dependencies(${PROJECT_NAME}_cc ${PROJECT_NAME}_gencfg)
+#ki_camera1_1 ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(tuiseki_camera1_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210602 tuiseki Ver realtime2 http://cvwww.ee.ous.ac.jp/opencv_practice5/#3.1
+add_executable(tuiseki_camera2 src/OptF/tuiseki_camera2.cpp)
+add_dependencies(tuiseki_camera2 ${PROJECT_NAME}_gencfg)
+add_dependencies(tuiseki_camera2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(tuiseki_camera2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(test_prm src/OptF/test_prm.cpp)
+add_dependencies(test_prm ${PROJECT_NAME}_gencfg)
+add_dependencies(test_prm ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_prm ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210608 lines_prm_ORB2 copy ver Depth
+add_executable(lines_prm_ORB3 src/prm/lines_prm_ORB3.cpp)
+add_dependencies(lines_prm_ORB3 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm_ORB3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm_ORB3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210610 lines_prm_ORB3 copy ver float
+add_executable(lines_prm_ORB4 src/prm/lines_prm_ORB4.cpp)
+add_dependencies(lines_prm_ORB4 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm_ORB4 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm_ORB4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210617 lines_prm_ORB4 copy ver NotZeroLength
+add_executable(lines_prm_ORB5 src/prm/lines_prm_ORB5.cpp)
+add_dependencies(lines_prm_ORB5 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm_ORB5 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm_ORB5 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210618 SfM_sample1
+#add_executable(sfm1 src/sfm/sfm1.cpp)
+#add_dependencies(sfm1 ${PROJECT_NAME}_gencfg)
+#add_dependencies(sfm1 ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(sfm1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210619 template1_matching copy Ver Realtime(ZNCC) 
+add_executable(template2 src/OptF/template2.cpp)
+add_dependencies(template2 ${PROJECT_NAME}_gencfg)
+add_dependencies(template2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210622 template2 copy  
+add_executable(template3 src/OptF/template3.cpp)
+add_dependencies(template3 ${PROJECT_NAME}_gencfg)
+add_dependencies(template3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210623 template3 copy_Ver tokutyoutenn_Limited  
+add_executable(template4_limit src/OptF/template4_limit.cpp)
+add_dependencies(template4_limit ${PROJECT_NAME}_gencfg)
+add_dependencies(template4_limit ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template4_limit ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210627 Kal_t1 copy Ver_Realtime 
+add_executable(Kal_t2 src/OptF/Kal_t2.cpp)
+add_dependencies(Kal_t2 ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210628 Kal_t3 copy Ver_hukusuu 
+add_executable(Kal_t3 src/OptF/Kal_t3.cpp)
+add_dependencies(Kal_t3 ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210628 Kal_t4 copy Ver_hukusuu 
+add_executable(Kal_t4 src/OptF/Kal_t4.cpp)
+add_dependencies(Kal_t4 ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t4 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210701 Kal_t2 copy Ver_+TemplateMaching 
+add_executable(Kal_t2_template src/OptF/Kal_t2_template.cpp)
+add_dependencies(Kal_t2_template ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t2_template ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t2_template ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210702
+add_executable(Saisyouzizyou_gaibu_pram src/L2_sp3/Saisyouzizyou_gaibu_pram.cpp)
+add_dependencies(Saisyouzizyou_gaibu_pram ${PROJECT_NAME}_gencfg)
+add_dependencies(Saisyouzizyou_gaibu_pram ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Saisyouzizyou_gaibu_pram ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210706 Kal_t2_template copy Ver_+TemplateMaching (hukusuu)
+add_executable(Kal_t3_template src/OptF/Kal_t3_template.cpp)
+add_dependencies(Kal_t3_template ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t3_template ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t3_template ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210707 Kal_t3_template copy Ver_+TemplateMaching (hukusuu)
+add_executable(Kal_t3_template2 src/OptF/Kal_t3_template2.cpp)
+add_dependencies(Kal_t3_template2 ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t3_template2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t3_template2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210707 Kal_t3_template copy Ver_+TemplateMaching 
+add_executable(Kal_t4_template src/OptF/Kal_t4_template.cpp)
+add_dependencies(Kal_t4_template ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t4_template ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t4_template ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210708 Kal_t4_template copy Ver_Algorithm narabikae
+add_executable(Kal_t4_template2 src/OptF/Kal_t4_template2.cpp)
+add_dependencies(Kal_t4_template2 ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t4_template2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t4_template2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210707 Kal_t3_template2 copy Ver_kahennsuu_taiou
+add_executable(Kal_t3_template3 src/OptF/Kal_t3_template3.cpp)
+add_dependencies(Kal_t3_template3 ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t3_template3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t3_template3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210709 Kal_t4_template2 copy Ver_Error_repair
+add_executable(Kal_t5_template src/OptF/Kal_t5_template.cpp)
+add_dependencies(Kal_t5_template ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t5_template ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t5_template ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210712 20210524_FLD_depth2 copy Ver + Kal_t4_template2
+add_executable(20210712_FLD src/FLD/20210712_FLD.cpp)
+add_dependencies(20210712_FLD ${PROJECT_NAME}_gencfg)
+add_dependencies(20210712_FLD ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210712_FLD ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210714 Kal_t5_template copy Ver_bunkatu(Roi) 
+add_executable(Kal_t5_template2 src/OptF/Kal_t5_template2.cpp)
+add_dependencies(Kal_t5_template2 ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t5_template2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t5_template2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210715 EKF 
+add_executable(EKF_test src/EKF/EKF_test.cpp)
+add_dependencies(EKF_test ${PROJECT_NAME}_gencfg)
+add_dependencies(EKF_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(EKF_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210715 EKF 
+#add_executable(EKF_test0 src/EKF/EKF_test0.cpp)
+#add_dependencies(EKF_test0 ${PROJECT_NAME}_gencfg)
+#add_dependencies(EKF_test0 ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(EKF_test0 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210715 EKF 
+add_executable(EKF_test1 src/EKF/EKF_test1.cpp)
+add_dependencies(EKF_test1 ${PROJECT_NAME}_gencfg)
+add_dependencies(EKF_test1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(EKF_test1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210715 EKF 
+add_executable(KF_test src/EKF/KF_test.cpp)
+add_dependencies(KF_test ${PROJECT_NAME}_gencfg)
+add_dependencies(KF_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(KF_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+
+#20210716 EKF 
+add_executable(EKF_test2 src/EKF/EKF_test2.cpp)
+add_dependencies(EKF_test2 ${PROJECT_NAME}_gencfg)
+add_dependencies(EKF_test2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(EKF_test2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210716 EKF 
+add_executable(EKF_testi src/EKF/EKF_testi.cpp)
+add_dependencies(EKF_testi ${PROJECT_NAME}_gencfg)
+add_dependencies(EKF_testi ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(EKF_testi ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210717 lines_prm_ORB5 copy Ver opticalFlow + Vpoint 
+add_executable(Vpoint_1 src/L2_sp3/Vpoint_1.cpp)
+add_dependencies(Vpoint_1 ${PROJECT_NAME}_gencfg)
+add_dependencies(Vpoint_1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Vpoint_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210719 Particle_Filter_SampleTest 
+add_executable(particle_test src/L2_sp3/particle_test.cpp)
+add_dependencies(particle_test ${PROJECT_NAME}_gencfg)
+add_dependencies(particle_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(particle_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210719 histogram test
+add_executable(histogram src/FLD/histogram.cpp)
+add_dependencies(histogram ${PROJECT_NAME}_gencfg)
+add_dependencies(histogram ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(histogram ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(${PROJECT_NAME}_cc # classification
+  src/classification/constructor.cpp
+  src/classification/methods.cpp
+  src/classification/debug_main.cpp
+  src/classification/debug_methods.cpp
+  src/classification/property.cpp
+)
+add_dependencies(${PROJECT_NAME}_cc ${PROJECT_NAME}_gencfg) # classification
+target_link_libraries(${PROJECT_NAME}_cc ${catkin_LIBRARIES}) # classification
+
+#20210726 Vpoint_1 copy Ver clustering(depth_pcl4_20201127 sannkou) 
+add_executable(Vpoint_1_clustering src/L2_sp3/Vpoint_1_clustering.cpp)
+add_dependencies(Vpoint_1_clustering  ${PROJECT_NAME}_gencfg)
+add_dependencies(Vpoint_1_clustering  ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Vpoint_1_clustering  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210726 20210712_FLD copy Ver clustering
+add_executable(FLD_clustering src/FLD/FLD_clustering.cpp)
+add_dependencies(FLD_clustering ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210726 13-01
+add_executable(13-01 src/FLD/13-01.cpp)
+add_dependencies(13-01 ${PROJECT_NAME}_gencfg)
+add_dependencies(13-01 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(13-01 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210726 13-01
+add_executable(k-means src/FLD/k-means.cpp)
+add_dependencies(k-means ${PROJECT_NAME}_gencfg)
+add_dependencies(k-means ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(k-means ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210729 20210712_FLD copy Ver clustering_2
+add_executable(FLD_clustering_2 src/FLD/FLD_clustering_2.cpp)
+add_dependencies(FLD_clustering_2 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering_2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210712 20210712_FLD copy Ver +Vpoint(suitei)
+add_executable(20210712_FLD_Vpoint1 src/L2_sp3/20210712_FLD_Vpoint1.cpp)
+add_dependencies(20210712_FLD_Vpoint1 ${PROJECT_NAME}_gencfg)
+add_dependencies(20210712_FLD_Vpoint1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(20210712_FLD_Vpoint1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+
+

@@ -207,7 +207,9 @@ std::cout<<"test1"<<std::endl;
             //XYはimageのデータなのでpclにそのままもって行くとでかい そこである定数で割ることで食らうタリング座標に変換する-------------------------(1)
              jk.x=(float)x/X_wariai;//ピクセル距離をクラスタリング距離に変換
              jk.y=(float)y/Y_wariai;
-             jk.z=(float)T[x][y];//ZはDepthデータなのでそのままで行ける
+
+             //jk.z=(float)T[x][y];//ZはDepthデータなのでそのままで行ける
+             jk.z=0;//ZはDepthデータなのでそのままで行ける
 
              pointCloud->points.emplace_back(jk);//ポイントクラウドに座標データを移動
              std::cout <<"B["<<x<<"]["<<y<<"]="<<pointCloud->points.back().z<<"_m"<< std::endl;

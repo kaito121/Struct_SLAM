@@ -7,6 +7,7 @@
 // void imageMatchingClass::subscribeMaskImageData(){//データ受信
 // 	queue2.callOne(ros::WallDuration(1));
 // }
+//ここに入力したい画像で入れる  
 void imageMatchingClass::image_callback(const sensor_msgs::ImageConstPtr& msg)//カメラデータを取り込んで
 {
     try{

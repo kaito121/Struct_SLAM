@@ -14,6 +14,7 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
+#include <random>
 
 using Eigen::MatrixXd;
 using namespace std;
@@ -59,7 +60,7 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
 
     image = bridgeImage->image.clone();//image変数に変換した画像データを代入
 
-
+//aaaaaaaaaaaaaaaaaaaaaaaaaaa
 //ここに処理項目
 	cv::Mat img_src = image;
   cv::Mat img_gray,img_gray2,img_edge,img_dst,img_FLD,img_line,img_line2,img_line3;
@@ -93,14 +94,37 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
   MatrixXd N(2,L);//Nは2行L列の行列
   MatrixXd PC(2,L);
 
+  std::random_device rnd;     // 非決定的な乱数生成器を生成
+  std::mt19937 mt(rnd());     //  メルセンヌ・ツイスタの32ビット版、引数は初期シード値
+  std::uniform_int_distribution<> rand50(0, 100);        // [0, 99] 範囲の一様乱数
+  std::uniform_int_distribution<> rand100(0, 200);        // [0, 99] 範囲の一様乱数
+  std::normal_distribution<> norm(50.0, 50.0);       // 平均50, 分散値10の正規分布
+  std::normal_distribution<> norm350(350.0, 50.0);       // 平均50, 分散値10の正規分布
+  std::normal_distribution<> norm300(300.0, 50.0);       // 平均50, 分散値10の正規分布
+   // for (int i = 0; i < 20; ++i) {
+   //     std::cout << "ランダム数rand100(mt)="<<rand100(mt)<<std::endl;
+   // }
+
     //直線の作成(消失点と任意の点を端点とした線を作成する)
    for(j=0;L>j;j++){
     std::cout <<"j="<< j << std::endl;
-      N(0,j)=r*cos(q*K);//直線の端点の座標x
+      //N(0,j)=r*cos(q*K)+rand100(mt);//直線の端点の座標x
+      //N(1,j)=r*sin(q*K)+rand100(mt);//直線の端点の座標y
+      //N(0,j)=r*cos(q*K)+norm(mt);//直線の端点の座標x
+      //N(1,j)=r*sin(q*K)+norm(mt);//直線の端点の座標y
+       N(0,j)=r*cos(q*K);//直線の端点の座標x
       N(1,j)=r*sin(q*K);//直線の端点の座標y
+      std::cout <<"直線の端点の座標x_N(0,"<<j<<")="<< N(0,j) << std::endl;
+      std::cout <<"直線の端点の座標y_N(1,"<<j<<")="<< N(1,j) << std::endl;
       K=K+1;
-      PC(0,j)=350;//消失点真値(x座標)
-      PC(1,j)=300;//消失点真値(y座標)
+      //PC(0,j)=350+rand100(mt);//消失点真値(x座標)
+      //PC(1,j)=300+rand100(mt);//消失点真値(y座標)
+      //PC(0,j)=350+norm(mt);//消失点真値(x座標)
+      //PC(1,j)=300+norm(mt);//消失点真値(y座標)
+      PC(0,j)=norm300(mt);//消失点真値(x座標)_観測データ=真値±ノイズ
+      PC(1,j)=norm300(mt);//消失点真値(y座標)
+      std::cout <<"消失点真値(x座標)_PC(0,"<<j<<")="<< PC(0,j) << std::endl;
+      std::cout <<"消失点真値(y座標)_PC(1,"<<j<<")="<< PC(1,j) << std::endl;
       cv::line(img_line,cv::Point(PC(0,j),PC(1,j)),cv::Point(N(0,j),N(1,j)),cv::Scalar(150,50,0), 4, cv::LINE_AA);//直線の描写(青線)
       cv::circle(img_line,Point(PC(0,0),PC(1,0)),5,Scalar(255,255,0),-1);//消失点真値の描写(水色の点)
     }
@@ -129,9 +153,9 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
     l[j][1]=N(1,j)+(sin(-thetal[j])*sqrt(lc[j]))*10;//Y1座標
     l[j][2]=N(0,j)+(cos(-thetal[j])*sqrt(lc[j]))*-10;//X2座標
     l[j][3]=N(1,j)+(sin(-thetal[j])*sqrt(lc[j]))*-10;//Y2座標
-    std::cout <<"直線の角度1θ="<< thetal[j] << std::endl;
-    std::cout <<"直線座標1=("<< l[j][0] <<","<<l[j][1]<<")"<< std::endl;
-    std::cout <<"直線座標2=("<< l[j][2] <<","<<l[j][3]<<")"<< std::endl;
+    //std::cout <<"直線の角度1θ="<< thetal[j] << std::endl;
+    //std::cout <<"直線座標1=("<< l[j][0] <<","<<l[j][1]<<")"<< std::endl;
+    //std::cout <<"直線座標2=("<< l[j][2] <<","<<l[j][3]<<")"<< std::endl;
 
     cv::line(img_line,cv::Point(l[j][0],l[j][1]),cv::Point(l[j][2],l[j][3]),cv::Scalar(150,50,0), 1, cv::LINE_AA);
     cv::line(img_line,cv::Point(PC(0,j),PC(1,j)),cv::Point(N(0,j),N(1,j)),cv::Scalar(150,50,0), 4, cv::LINE_AA);//直線の描写(青線)
@@ -205,9 +229,9 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
 
 
   cv::circle(img_line,Point(100,100),5,Scalar(255,255,0),-1);//消失点真値の描写(水色の点)
-  std::cout <<"直線の端点の座標N=\n"<< N << std::endl;
-  std::cout <<"直線の端点の座標(消失点)PC=\n"<< PC << std::endl;
-
+  //std::cout <<"直線の端点の座標N=\n"<< N << std::endl;
+  //std::cout <<"直線の端点の座標(消失点)PC=\n"<< PC << std::endl;
+//
   //法線ベクトルを求める
   //法線ベクトルは直線の90度なので90度回転させる
   //ただし90度回転させただけなので、そのベクトルを単位ベクトル化することで法線ベクトルを作る(M2 4月研究参照)
@@ -221,7 +245,7 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
   //R(1,0)=1;
   //R(1,1)=0;
 
-  std::cout <<"回転行列R=\n"<< R << std::endl;
+  //std::cout <<"回転行列R=\n"<< R << std::endl;
 
   MatrixXd n(2,L);
   n=R*(PC-N);//直線を90度回転させたベクトルn
@@ -230,15 +254,15 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
   //cv::line(img_line,cv::Point(PC(0,0),PC(1,0)),cv::Point(PC(0,0)-n(0,t),PC(1,0)-n(1,t)),cv::Scalar(0,255,0), 4, cv::LINE_AA);//90度回転した直線(PC-nでベクトルから座標変換)(緑の線)
   }
   
-  std::cout <<"直線を90度回転させたベクトルn=\n"<< n << std::endl;
+  //std::cout <<"直線を90度回転させたベクトルn=\n"<< n << std::endl;
 
   //法線ベクトルの大きさを１にする
   MatrixXd na(2,L);
   MatrixXd na1(L,0);
   na=n.transpose()*n;//na=n^T*n（ルートの中身を計算）
   na1=na.diagonal();//naを対角化することで要素の二乗の和を求める(例:a1^2+a2^2);
-  std::cout <<"na=\n"<< na << std::endl;
-  std::cout <<"naの対角行列=\n"<< na.diagonal() << std::endl;
+  //std::cout <<"na=\n"<< na << std::endl;
+  //std::cout <<"naの対角行列=\n"<< na.diagonal() << std::endl;
   MatrixXd n1(L,1);
   MatrixXd n2(2,L);
   MatrixXd n22(L,1);
@@ -251,13 +275,13 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
   MatrixXd X0(2,1);
     
   for(t=0;L>t;t++){
-    std::cout <<"t="<< t << std::endl;
+    //std::cout <<"t="<< t << std::endl;
     n1(t,0)=sqrt(na1(t,0));//ベクトルnの大きさ（二乗の和に対しルートをかける）
     //n1(t,0)=sqrt(na(0,t));//ベクトルnの大きさ（
     n2(0,t)=n(0,t)/n1(t,0);//法線ベクトル
     n2(1,t)=n(1,t)/n1(t,0);//法線ベクトル
-    std::cout <<"n(0)("<<t<<")=\n"<< n(0,t) << std::endl;
-    std::cout <<"n(1)("<<t<<")=\n"<< n(1,t) << std::endl;
+    //std::cout <<"n(0)("<<t<<")=\n"<< n(0,t) << std::endl;
+    //std::cout <<"n(1)("<<t<<")=\n"<< n(1,t) << std::endl;
     
     cv::line(img_line,cv::Point(PC(0,t),PC(1,t)),cv::Point((PC(0,t)-n2(0,t)*100),(PC(1,t)-n2(1,t)*100)),cv::Scalar(0,0,255), 4, cv::LINE_AA);//法線ベクトル(描写時に100倍してる）(赤の線)
     }
@@ -267,18 +291,18 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
 
   //最小二乗法の計算
   //p0=n2*N;//P0=nT*Nを計算
-  std::cout <<"for文終了0"<< std::endl;
+  //std::cout <<"for文終了0"<< std::endl;
   p0=n2.transpose()*N;//P0=nT*Nを計算//ここ要チェック------------------------------------------------
   n3=n2*n2.transpose();//逆行列の内部を計算
   //p0=n2.transpose()*N;//P0=nT*Nを計算
   //n3=n2.transpose()*n2;//逆行列の内部を計算
-  std::cout <<"for文終了1"<< std::endl;
+  //std::cout <<"for文終了1"<< std::endl;
 
   //最小二乗法の計算
   n4=n2*p0.diagonal();//nにP0の対角行列をかけている 
   X=n3.inverse()*n4;//逆行列と法線ベクトルの転置を掛け算
   //X0=n30*n4;//逆行列と法線ベクトルの転置を掛け算
-  std::cout <<"for文終了3"<< std::endl;
+  //std::cout <<"for文終了3"<< std::endl;
 
   
   /*n4=n3.inverse()*n2.transpose();//逆行列と法線ベクトルの転置を掛け算
