@@ -66,6 +66,8 @@ using namespace cv;
     double OPEN;
 //コールバック関数
 
+cv::Mat img_depth2,img_depth3,img_depth4;
+
 void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Image::ConstPtr& depth_msg)
 {
 	//変数宣言
@@ -103,6 +105,14 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
     RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
     depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
+    //Depth修正----------------------------------------------------------------------------------------------------
+    img_depth2 = depthimage.clone();//depthの画像をコピーする
+    //画像クロップ(中距離でほぼ一致)
+    cv::Rect roi(cv::Point(110, 95), cv::Size(640/1.6, 480/1.6));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
+    cv::Mat img_dstdepth = depthimage(roi); // 切り出し画像
+    resize(img_dstdepth, img_depth3,cv::Size(), 1.6, 1.6);//クロップした画像を拡大
+    img_depth4 = img_depth3.clone();//depth3の画像をコピーする
+    //cv::imshow(win_depth4, img_depth4);//クロップされたdepth画像
 
     // pointcloud を作成
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -191,7 +201,7 @@ std::cout<<"test1"<<std::endl;
         for(int y = 0;y < RGBimage.size().height-H;y=y+H){
            //Mat cut_img(img_dst7,Rect(x,y,W,H)); // W*Hpx四方で切り抜く
             Mat cut_img(img_dst6,Rect(x,y,W,H)); // W*Hpx四方で切り抜く
-            Mat cutdepth_img(depthimage,Rect(x,y,W,H)); // W*Hpx四方で切り抜く
+            Mat cutdepth_img(img_depth3,Rect(x,y,W,H)); // W*Hpx四方で切り抜く
             siro=0,kaisu=0,P1=0,zero=0;
             std::mutex mut1;
             std::cout<<"test2"<<std::endl;
@@ -220,7 +230,9 @@ std::cout<<"test1"<<std::endl;
 
                      //結果表示
    for(int x=0;x<RGBimage.size().width;x=x+W){
-	 for(int y=(RGBimage.size().height/2)-30;y<RGBimage.size().height;y=y+H){ //Y軸半分-60pxから下側だけを使用する
+	 for(int y=0;y<RGBimage.size().height;y=y+H){ //Y軸半分-60pxから下側だけを使用する
+	 //for(int y=(RGBimage.size().height/2)-30;y<RGBimage.size().height;y=y+H){ //Y軸半分-60pxから下側だけを使用する
+
 
 		 if(A[x][y]>=10 && T[x][y]!=0){                                           //白の割合が10%以上なら発動
              rectangle(img_dst8,Rect(x,y,W,H),Scalar(0,0,255),1);//赤四角作成

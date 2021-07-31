@@ -10,7 +10,14 @@
 #include <math.h>
 #include <highgui.h>
 #include <opencv2/opencv.hpp>
-#include <opencv2/sfm.hpp>
+//#include <opencv2/core.hpp>
+//#include <opencv2/sfm.hpp>
+//#include <opencv2/sfm/conditioning.hpp>
+//#include <opencv2/sfm/fundamental.hpp>
+//#include <opencv2/sfm/io.hpp>
+//#include <opencv2/sfm/numeric.hpp>
+//#include <opencv2/sfm/projection.hpp>
+//#include <opencv2/sfm/triangulation.hpp>
 
 int main()
 {
@@ -25,7 +32,7 @@ int main()
 
   // (1)入力ファイル名のセット
   for (int i = 0; i < NUM_IMG; i++)
-    image_files.push_back("09-06-" + std::to_string(i + 1) + ".jpg");
+    image_files.push_back("/home/fuji/catkin_ws/src/Struct_SLAM/src/sfm/09-06-" + std::to_string(i + 1) + ".jpg");
 
   // (2)内部パラメータ行列の生成
   cv::Matx33d K = cv::Matx33d(f, 0, cx,
@@ -35,7 +42,7 @@ int main()
   // (3)SfMモジュールを用いた複数の画像データからの３次元再構成（点群が計算される）
   bool is_projective = true;
   std::vector<cv::Mat> Rs_est, ts_est, points3d_estimated;
-  cv::sfm::reconstruct(image_files, Rs_est, ts_est, K, points3d_estimated, is_projective);
+  //cv::sfm::reconstruct(image_files, Rs_est, ts_est, K, points3d_estimated, is_projective);
 
   // (4)結果の表示(Vizを使用する）
   //...Windowを生成

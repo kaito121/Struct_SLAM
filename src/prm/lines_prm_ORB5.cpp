@@ -7,6 +7,8 @@
 //20210602
 //Ver1では特徴点の更新プログラムが入っておらず画面から消えたら特徴点が消えてしまい追跡ができない
 //そこで常に更新と追跡を行うように変更したい
+//20210730 
+//特徴点の世界座標推定が間違えているので修正し推定する
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>//センサーデータ形式ヘッダ
 #include <cv_bridge/cv_bridge.h>//画像変換のヘッダ
@@ -37,23 +39,19 @@ std::string win_curr = "curr";
 std::string win_dst2 = "dst2";
 std::string win_dst3 = "dst3";
 std::string win_FeaturePoint = "FeaturePoint";
+std::string win_camera_check = "camera_check";
+
+
 
 using namespace std;
 using namespace cv;
 
-// 抽出する画像の輝度値の範囲を指定
-#define B_MAX 255
-#define B_MIN 150
-#define G_MAX 255
-#define G_MIN 180
-#define R_MAX 255
-#define R_MIN 180
 // reset == TRUE のとき特徴点検出を行う
 // 最初のフレームで必ず特徴点検出を行うように、初期値を TRUE にする
 bool reset = true;
 // image_curr:  現在の入力画像、    image_prev:  直前の入力画像
 // points_curr: 現在の特徴点リスト、points_prev: 直前の特徴点リスト
-cv::Mat frame,image_curr, image_prev,img_dst,img_dst2,img_dst3;
+cv::Mat image_curr, image_prev,img_dst,img_dst2,img_dst3,img_camera_check;
 vector<cv::Point2f> points_prev, points_curr,points_prev_not, points_curr_not;
 vector<cv::Point2f> mappoint;
 
@@ -133,13 +131,15 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   std::cout << "内部パラメータ: K=\n" << K << std::endl;
 
   //画像処理------------------------------------------------------------------------------------------------------------------------
-  image.copyTo(frame);//ここ間違えていたので注意
 	image.copyTo(img_dst);//ここ間違えていたので注意
   if(kaisu==0){
     img_dst2 = image.clone();
     img_dst2 = cv::Scalar(0,0,0);
     img_dst3 = image.clone();
     img_dst3 = cv::Scalar(0,0,0);
+    img_camera_check = image.clone();
+    img_camera_check = cv::Scalar(0,0,0);
+
   }
  
 
@@ -224,66 +224,61 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 		if (cv::norm(points_prev[i] - points_curr[i]) > 0.5) {
 			c = cv::Scalar(0, 100, 255);//今の特徴点と一つ前の特徴点との差が0.5以上の時オレンジ
 		}
-		if(i==0){cv::circle(img_dst, points_curr[i], 8, Scalar(0,255,255), -1, cv::LINE_AA);
+		cv::circle(img_dst, points_curr[i], 4, c, -1, cv::LINE_AA);//今の座標情報
+		cv::circle(img_dst, points_prev[i], 3, Scalar(255,255,255), -1, cv::LINE_AA);//一つ前の画像の座標
+		cv::line(img_dst,cv::Point(points_curr[i]),cv::Point(points_prev[i]),cv::Scalar(0,255,255), 1, cv::LINE_AA);//線を描写する
+    cv::line(img_dst,cv::Point(points_curr[i].x,points_prev[i].y),cv::Point(points_prev[i]),cv::Scalar(255,0,0), 1, cv::LINE_AA);//線を描写する
+    cv::line(img_dst,cv::Point(points_prev[i].x,points_curr[i].y),cv::Point(points_prev[i]),cv::Scalar(0,255,0), 1, cv::LINE_AA);//線を描写する
+    //cv::arrowedLine(img_dst,points_curr[i],points_prev[i],cv::Scalar(0,255,255),1,8,0,1.0);//矢印の描写
+    //cv::arrowedLine(img_dst,cv::Point(points_curr[i].x,points_prev[i].y),points_prev[i],cv::Scalar(255,0,0),1,8,0,1.0);//矢印の描写
+    //cv::arrowedLine(img_dst,cv::Point(points_prev[i].x,points_curr[i].y),points_prev[i],cv::Scalar(0,255,0),1,8,0,1.0);//矢印の描写
+    //cv::circle(img_dst2, points_curr[i], 1, c, -1, cv::LINE_AA);//今の座標情報
+    if((points_curr[i].x-points_prev[i].x)>(points_curr[i].y-points_prev[i].y)){
+      cv::arrowedLine(img_dst2,points_curr[i],points_prev[i],cv::Scalar(255,255,0),1,8,0,1.0);//矢印の描写
     }
-		if(i==1){cv::circle(img_dst, points_curr[i], 8, Scalar(0,250,0), -1, cv::LINE_AA);}
-		if(i==2){cv::circle(img_dst, points_curr[i], 8, Scalar(0,200,255), -1, cv::LINE_AA);}
-		if(i==3){cv::circle(img_dst, points_curr[i], 8, Scalar(0,150,255), -1, cv::LINE_AA);}
-		if(i==4){cv::circle(img_dst, points_curr[i], 8, Scalar(100,125,0), -1, cv::LINE_AA);}
-		if(i==5){cv::circle(img_dst, points_curr[i], 8, Scalar(0,100,255), -1, cv::LINE_AA);}
-		if(i==6){cv::circle(img_dst, points_curr[i], 8, Scalar(0,75,255), -1, cv::LINE_AA);}
-		if(i==7){cv::circle(img_dst, points_curr[i], 8, Scalar(100,50,255), -1, cv::LINE_AA);}
-		if(i==8){cv::circle(img_dst, points_curr[i], 8, Scalar(50,25,255), -1, cv::LINE_AA);}
-		if(i==9){cv::circle(img_dst, points_curr[i], 8, Scalar(0,0,255), -1, cv::LINE_AA);}
-		if(i==10){cv::circle(img_dst, points_curr[i], 8, Scalar(100,255,200), -1, cv::LINE_AA);}
-		else{
-			cv::circle(img_dst, points_curr[i], 4, c, -1, cv::LINE_AA);//今の座標情報
-			cv::circle(img_dst, points_prev[i], 3, Scalar(255,255,255), -1, cv::LINE_AA);//一つ前の画像の座標
-			cv::line(img_dst,cv::Point(points_curr[i]),cv::Point(points_prev[i]),cv::Scalar(0,255,255), 1, cv::LINE_AA);//線を描写する
-      cv::line(img_dst,cv::Point(points_curr[i].x,points_prev[i].y),cv::Point(points_prev[i]),cv::Scalar(255,0,0), 1, cv::LINE_AA);//線を描写する
-      cv::line(img_dst,cv::Point(points_prev[i].x,points_curr[i].y),cv::Point(points_prev[i]),cv::Scalar(0,255,0), 1, cv::LINE_AA);//線を描写する
-      //cv::arrowedLine(img_dst,points_curr[i],points_prev[i],cv::Scalar(0,255,255),1,8,0,1.0);//矢印の描写
-      //cv::arrowedLine(img_dst,cv::Point(points_curr[i].x,points_prev[i].y),points_prev[i],cv::Scalar(255,0,0),1,8,0,1.0);//矢印の描写
-      //cv::arrowedLine(img_dst,cv::Point(points_prev[i].x,points_curr[i].y),points_prev[i],cv::Scalar(0,255,0),1,8,0,1.0);//矢印の描写
-      //cv::circle(img_dst2, points_curr[i], 1, c, -1, cv::LINE_AA);//今の座標情報
-      if((points_curr[i].x-points_prev[i].x)>(points_curr[i].y-points_prev[i].y)){
-        cv::arrowedLine(img_dst2,points_curr[i],points_prev[i],cv::Scalar(255,255,0),1,8,0,1.0);//矢印の描写
+    else{
+      cv::arrowedLine(img_dst2,points_curr[i],points_prev[i],cv::Scalar(0,0,255),1,8,0,1.0);//矢印の描写
+    }
+		
+    cv::arrowedLine(img_dst2,cv::Point(100,100),cv::Point(150,100),cv::Scalar(0,255,255),1,8,0,1.0);//矢印の描写
+    cv::arrowedLine(img_dst2,cv::Point(100,200),cv::Point(300,200),cv::Scalar(0,255,255),1,8,0,1.0);//矢印の描写
+
+    std::cout <<"特徴点の画像座標(curr)["<<i<<"]="<<points_curr[i]<< std::endl;//特徴点の座標
+		std::cout <<"特徴点の画像座標(prev)["<<i<<"]="<<points_prev[i]<< std::endl;//特徴点の座標
+
+    Zs[i]= img_depth3.at<float>(points_curr[i]);//点の三次元距離データ取得
+    std::cout <<"特徴点の距離Zs["<<i<<"]="<<Zs[i]<< std::endl;
+
+    if(Zs[i]!=0){//depthデータが0の時を考慮
+      NotZeroL=NotZeroL+1;
+      Zs[NotZeroL]=Zs[i];
       }
-      else{
-        cv::arrowedLine(img_dst2,points_curr[i],points_prev[i],cv::Scalar(0,0,255),1,8,0,1.0);//矢印の描写
-      }
-		}
-      cv::arrowedLine(img_dst2,cv::Point(100,100),cv::Point(150,100),cv::Scalar(0,255,255),1,8,0,1.0);//矢印の描写
-      cv::arrowedLine(img_dst2,cv::Point(100,200),cv::Point(300,200),cv::Scalar(0,255,255),1,8,0,1.0);//矢印の描写
+    else{continue;}//depthデータがゼロの時下の処理をスキップ
+    //Zs[i]=1;
+    std::cout <<"特徴点の距離Zs(ノイズ除去後)["<<NotZeroL<<"]="<<Zs[NotZeroL]<< std::endl;
 
-    	std::cout <<"特徴点の画像座標(curr)["<<i<<"]="<<points_curr[i]<< std::endl;//特徴点の座標
-		  std::cout <<"特徴点の画像座標(prev)["<<i<<"]="<<points_prev[i]<< std::endl;//特徴点の座標
+    //Screenp[i] << points_curr[i].x, points_curr[i].y, 1;//斉次化+画像正規化座標変換
+    Screenp[NotZeroL] << round(points_curr[i].x+(image.size().width/2)), round(points_curr[i].y+(image.size().height/2)), 1;//斉次化(整数化四捨五入(round関数))+画像正規化座標変換
+    std::cout << "斉次画像座標:Screenp["<<NotZeroL<<"]=\n" << Screenp[NotZeroL] << std::endl;
 
-      Zs[i]= img_depth3.at<float>(points_curr[i]);//点の三次元距離データ取得
-      std::cout <<"特徴点の距離Zs["<<i<<"]="<<Zs[i]<< std::endl;
+    Camerap[NotZeroL]=Zs[NotZeroL]*K_*Screenp[NotZeroL];//画像座標系→カメラ座標系座標変換
+    std::cout << "特徴点のカメラ座標:Camerap["<<NotZeroL<<"]=\n" << Camerap[NotZeroL] << std::endl;
 
-      if(Zs[i]!=0){//depthデータが0の時を考慮
-        NotZeroL=NotZeroL+1;
-        Zs[NotZeroL]=Zs[i];
-        }
-      else{continue;}//depthデータがゼロの時下の処理をスキップ
-      //Zs[i]=1;
-      std::cout <<"特徴点の距離Zs(ノイズ除去後)["<<NotZeroL<<"]="<<Zs[NotZeroL]<< std::endl;
+		cv::circle(img_camera_check, cv::Point(Camerap[NotZeroL](0,0)-(image.size().width/2),Camerap[NotZeroL](1,0)-(image.size().height/2)), 4, c, -1, cv::LINE_AA);//カメラ座標チェック用ポイント原点(x=u=image.size().width/2,z=v=image.size().height)
+		//cv::line(img_camera_check,cv::Point(image.size().width/2,image.size().height),cv::Point(Camerap[NotZeroL](0,0),Camerap[NotZeroL](2,0)),cv::Scalar(0,255,255), 1, cv::LINE_AA);//線を描写する
 
-      //Screenp[i] << points_curr[i].x, points_curr[i].y, 1;//斉次化
-      Screenp[NotZeroL] << round(points_curr[i].x), round(points_curr[i].y), 1;//斉次化(整数化四捨五入)
-      std::cout << "斉次画像座標:Screenp["<<NotZeroL<<"]=\n" << Screenp[NotZeroL] << std::endl;
 
-      Camerap[NotZeroL]=Zs[NotZeroL]*K_*Screenp[NotZeroL];//画像座標系→カメラ座標系座標変換
-      std::cout << "特徴点のカメラ座標:Camerap["<<NotZeroL<<"]=\n" << Camerap[NotZeroL] << std::endl;
 
-      /*CameraP(NotZeroL,0)=Camerap[NotZeroL](0,0);//特徴点Pのカメラ座標を一つの行列にまとめる(斉次化)
-      CameraP(NotZeroL,1)=Camerap[NotZeroL](1,0);
-      CameraP(NotZeroL,2)=Camerap[NotZeroL](2,0);
-      CameraP(NotZeroL,3)=1;*/
+    /*CameraP(NotZeroL,0)=Camerap[NotZeroL](0,0);//特徴点Pのカメラ座標を一つの行列にまとめる(斉次化)
+    CameraP(NotZeroL,1)=Camerap[NotZeroL](1,0);
+    CameraP(NotZeroL,2)=Camerap[NotZeroL](2,0);
+    CameraP(NotZeroL,3)=1;*/
+
+
+
 
 	}
-  if(kaisu%50==0){img_dst2 = cv::Scalar(0,0,0),img_dst3 = cv::Scalar(0,0,0);}//100回で描写記録画像をリセット
+  if(kaisu%50==0){img_dst2 = cv::Scalar(0,0,0),img_dst3 = cv::Scalar(0,0,0),img_camera_check = cv::Scalar(0,0,0);}//100回で描写記録画像をリセット
   std::cout <<"元データ個数NotZeroL="<<points_curr.size()<< std::endl;
   std::cout <<"Depthノイズを除いたデータ個数NotZeroL="<<NotZeroL<< std::endl;
   cv::Mat_<double> CameraP= cv::Mat_<double>(NotZeroL, 4);//すべての点のカメラ座標(斉次化)
@@ -418,6 +413,9 @@ for (int i = 0; i < points_curr.size(); i++) {
     cv::imshow("win_dst3", img_dst3);
 		cv::imshow("win_curr", image_curr);//今の画像
     cv::imshow("win_FeaturePoint", FeaturePoint[0]);
+		cv::imshow("win_camera_check", img_camera_check);
+
+
 
 		if (req == 1) {//初回は直前の画像がないため考慮
 		cv::imshow("win_prev", image_prev);//一つ前の画像像

@@ -93,6 +93,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   u[0]=2.05;//入力1
   u[1]=1.95;
 
+
   LM[0]=50;//ランドマーク1の位置
   LM[1]=100;
 
@@ -164,9 +165,14 @@ omegaAct = (uR-uL)/(2*d);//雑音あり
 omegaDes = (u[0]-u[1])/(2*d);//雑音なし
 
 //雑音の影響を考慮した実際の状態
-xAct[0] = xAct[0] + vAct * Ts *cos(xAct[2]+omegaAct*Ts/2);//ロボットの状態x
-xAct[1] = xAct[1] + vAct * Ts *sin(xAct[2]+omegaAct*Ts/2);//ロボットの状態y
-xAct[2] = xAct[2] + omegaAct * Ts;//ロボットの状態θ
+//xAct[0] = xAct[0] + vAct * Ts *cos(xAct[2]+omegaAct*Ts/2);//ロボットの状態x
+//xAct[1] = xAct[1] + vAct * Ts *sin(xAct[2]+omegaAct*Ts/2);//ロボットの状態y
+//xAct[2] = xAct[2] + omegaAct * Ts;//ロボットの状態θ
+
+xAct[0] = xAct[0] + vAct * Ts *cos(xAct[2]+Ts/2);//ロボットの状態x
+xAct[1] = xAct[1] + vAct * Ts *sin(xAct[2]+Ts/2);//ロボットの状態y
+xAct[2] = xAct[2] + Ts;//ロボットの状態θ
+
 
 xACT= (cv::Mat_<float>(3,1) <<
 xAct[0],

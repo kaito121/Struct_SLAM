@@ -389,8 +389,8 @@ target_link_libraries(findessential3_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #add_executable(findessential4 src/findessential4.cpp)
 #target_link_libraries(findessential4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
-#add_executable(SfM src/smp/SfM.cpp)
-#target_link_libraries(SfM ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(SfM src/smp/SfM.cpp)
+target_link_libraries(SfM ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(${PROJECT_NAME}_im # image matching
    src/imageMatching/constructor.cpp
@@ -929,6 +929,31 @@ add_executable(20210712_FLD_Vpoint1 src/L2_sp3/20210712_FLD_Vpoint1.cpp)
 add_dependencies(20210712_FLD_Vpoint1 ${PROJECT_NAME}_gencfg)
 add_dependencies(20210712_FLD_Vpoint1 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(20210712_FLD_Vpoint1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210730 depth_pcl4_20210521 copy depth_pcl4_20210521 + lines_prm_ORB5
+add_executable(lines_prm_ORB6 src/prm/lines_prm_ORB6.cpp)
+add_dependencies(lines_prm_ORB6 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm_ORB6 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm_ORB6 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210730 lines_prm_ORB6
+add_executable(lines_prm_ORB6_2 src/prm/lines_prm_ORB6_2.cpp)
+add_dependencies(lines_prm_ORB6_2 ${PROJECT_NAME}_gencfg)
+add_dependencies(lines_prm_ORB6_2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(lines_prm_ORB6_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210730 sample 
+add_executable(05-01 src/sample/05-01.cpp)
+add_dependencies(05-01 ${PROJECT_NAME}_gencfg)
+add_dependencies(05-01 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(05-01 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210730 sample 
+add_executable(05-02 src/sample/05-02.cpp)
+add_dependencies(05-02 ${PROJECT_NAME}_gencfg)
+add_dependencies(05-02 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(05-02 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
 
 
 

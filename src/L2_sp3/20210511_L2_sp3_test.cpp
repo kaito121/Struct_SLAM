@@ -86,7 +86,7 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
   //for(K=-2;K>=2;K=K+0.01)
   double K=-2;
   //int L=(2+2)/0.1;
-  int L=4;//LはKの個数(直線の個数)
+  int L=6;//LはKの個数(直線の個数)
   std::cout <<"直線の個数L="<< L << std::endl;
 
   //可変列数の行列作成
@@ -112,7 +112,7 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
       //N(1,j)=r*sin(q*K)+rand100(mt);//直線の端点の座標y
       //N(0,j)=r*cos(q*K)+norm(mt);//直線の端点の座標x
       //N(1,j)=r*sin(q*K)+norm(mt);//直線の端点の座標y
-       N(0,j)=r*cos(q*K);//直線の端点の座標x
+      N(0,j)=r*cos(q*K);//直線の端点の座標x
       N(1,j)=r*sin(q*K);//直線の端点の座標y
       std::cout <<"直線の端点の座標x_N(0,"<<j<<")="<< N(0,j) << std::endl;
       std::cout <<"直線の端点の座標y_N(1,"<<j<<")="<< N(1,j) << std::endl;
@@ -323,7 +323,7 @@ void callback_function(const sensor_msgs::Image::ConstPtr& msg)//画像トピッ
   std::cout <<"n3の逆行列=\n"<< n3.inverse() << std::endl;
   std::cout <<"n4=\n"<< n4 << std::endl;
   std::cout <<"p0.diagonal()=\n"<< p0.diagonal() << std::endl;
-  std::cout <<"X=\n"<< X << std::endl;
+  std::cout <<"X=\n"<< X << std::endl;//推定交点
 
   cv::circle(img_line,Point(X(0,0),X(1,0)),5,Scalar(0,0,255),-1);
   cv::circle(img_line,Point(X0(0,0),X0(1,0)),5,Scalar(255,0,255),-1);

@@ -13,7 +13,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/ximgproc/fast_line_detector.hpp>//FLD
-
+#include <Eigen/Dense>
 
 ros::Subscriber sub;//データをsubcribeする奴
 std::string win_src = "src";//カメラ画像
@@ -38,6 +38,8 @@ std::string win_img_1 = "img_1";//カメラ画像
 
 using namespace std;
 using namespace cv;
+using Eigen::MatrixXd;
+
 
 // 抽出する画像の輝度値の範囲を指定
 #define B_MAX 255
@@ -115,7 +117,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
 
  //カルマンフィルタ初期設定---------------------------------------------------------------------------------------------------------
-  float yosokuX[karuman],yosokuY[karuman],yosoku_haniX[karuman],yosoku_haniY[karuman];//カルマンフィルタ出力変数
+  /*float yosokuX[karuman],yosokuY[karuman],yosoku_haniX[karuman],yosoku_haniY[karuman];//カルマンフィルタ出力変数
   double templateX[karuman],templateY[karuman],templateRows[karuman],templateCols[karuman];//カルマンフィルタで予測したマッチング予測範囲
   if(kaisu==0){
   KF.statePre = cv::Mat_<float>::zeros(4, karuman); //状態の推定値(x'(k))
@@ -138,7 +140,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   KF.gain = cv::Mat_<float>::zeros(4, 2);//カルマンゲイン(K)
   setIdentity(KF.processNoiseCov, cv::Scalar::all(1e-1));//プロセスノイズ（時間遷移に関するノイズ）の共分散行列 (Q)
   setIdentity(KF.errorCovPost, cv::Scalar::all(1e-1));//前回更新された誤差共分散(P'(k))
-  }
+  }*/
 
 
 //ここに処理項目
@@ -275,7 +277,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     double naname[200][20][2][4],nanameB;
     double yokothetal[100],tatethetal[100],yokolc[100],tatelc[100],yokol[200][4],tatel[200][4];
     double ynanamethetal[100],tnanamethetal[100],ynanamelc[100],tnanamelc[100],ynanamel[200][4],tnanamel[200][4];
-    double A[4][200][2][4];
+    double A[3][500][2][4];
     int yokoi,tatei,yokonanamei,tatenanamei;
     double datat[tatei],datay[yokoi];//ヒストグラムデータ用
     
@@ -421,7 +423,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     } 
 
 
-
+    yokonanamei=yokonanamei-1;//配列繰り上がり、ｊリセット
     //グルーピング(縦線)
     for(int i = 0; i < tateyouso; i++){
             //縦成分の範囲を指定する
@@ -488,27 +490,27 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
              std::cout <<"tateB="<<tateB<< std::endl;
              std::cout <<"tatetheta[i+1]-tateB="<<tatetheta[i+1]-tateB<< std::endl;
 
-            A[3][tatenanamei][0][0]=tatelines2[i+1][0];//タテナナメ線のu1座標
-            A[3][tatenanamei][0][1]=tatelines2[i+1][1];//タテナナメ線のv1座標
-            A[3][tatenanamei][0][2]=tateZ1[i+1];//タテナナメ線のz1座標(三次元距離情報)
-            A[3][tatenanamei][0][3]=tatetheta[i+1];//代入([3]なのはθで[2]はZだから)
+            A[2][yokonanamei][0][0]=tatelines2[i+1][0];//タテナナメ線のu1座標
+            A[2][yokonanamei][0][1]=tatelines2[i+1][1];//タテナナメ線のv1座標
+            A[2][yokonanamei][0][2]=tateZ1[i+1];//タテナナメ線のz1座標(三次元距離情報)
+            A[2][yokonanamei][0][3]=tatetheta[i+1];//代入([3]なのはθで[2]はZだから)
 
-            A[3][tatenanamei][1][0]=tatelines2[i+1][2];//タテナナメ線のu2座標
-            A[3][tatenanamei][1][1]=tatelines2[i+1][3];//タテナナメ線のv2座標
-            A[3][tatenanamei][1][2]=tateZ2[i+1];//タテナナメ線のz2座標(三次元距離情報)
-            A[3][tatenanamei][1][3]=tatetheta[i+1];//代入([3]なのはθで[2]はZだから)
+            A[2][yokonanamei][1][0]=tatelines2[i+1][2];//タテナナメ線のu2座標
+            A[2][yokonanamei][1][1]=tatelines2[i+1][3];//タテナナメ線のv2座標
+            A[2][yokonanamei][1][2]=tateZ2[i+1];//タテナナメ線のz2座標(三次元距離情報)
+            A[2][yokonanamei][1][3]=tatetheta[i+1];//代入([3]なのはθで[2]はZだから)
 
-            std::cout <<"チェックA[3]["<<tatenanamei<<"][0][0]= "<<A[3][tatenanamei][0][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
-            std::cout <<"チェックA[3]["<<tatenanamei<<"][0][1]= "<<A[3][tatenanamei][0][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
-            std::cout <<"チェックA[3]["<<tatenanamei<<"][0][2]= "<<A[3][tatenanamei][0][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
-            std::cout <<"チェックA[3]["<<tatenanamei<<"][0][3]= "<<A[3][tatenanamei][0][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+            std::cout <<"チェックA[2]["<<yokonanamei<<"][0][0]= "<<A[2][yokonanamei][0][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+            std::cout <<"チェックA[2]["<<yokonanamei<<"][0][1]= "<<A[2][yokonanamei][0][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+            std::cout <<"チェックA[2]["<<yokonanamei<<"][0][2]= "<<A[2][yokonanamei][0][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+            std::cout <<"チェックA[2]["<<yokonanamei<<"][0][3]= "<<A[2][yokonanamei][0][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
 
-            std::cout <<"チェックA[3]["<<tatenanamei<<"][1][0]= "<<A[3][tatenanamei][1][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
-            std::cout <<"チェックA[3]["<<tatenanamei<<"][1][1]= "<<A[3][tatenanamei][1][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
-            std::cout <<"チェックA[3]["<<tatenanamei<<"][1][2]= "<<A[3][tatenanamei][1][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
-            std::cout <<"チェックA[3]["<<tatenanamei<<"][1][3]= "<<A[3][tatenanamei][1][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+            std::cout <<"チェックA[2]["<<yokonanamei<<"][1][0]= "<<A[2][yokonanamei][1][0]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+            std::cout <<"チェックA[2]["<<yokonanamei<<"][1][1]= "<<A[2][yokonanamei][1][1]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+            std::cout <<"チェックA[2]["<<yokonanamei<<"][1][2]= "<<A[2][yokonanamei][1][2]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
+            std::cout <<"チェックA[2]["<<yokonanamei<<"][1][3]= "<<A[2][yokonanamei][1][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
 
-             tatenanamei=tatenanamei+1;//配列繰り上がり、ｊリセット
+             yokonanamei=yokonanamei+1;//配列繰り上がり、ｊリセット
              cv::line(img_line3,cv::Point(tatelines2[i+1][0],tatelines2[i+1][1]),cv::Point(tatelines2[i+1][2],tatelines2[i+1][3]),cv::Scalar(255,0,0), 2, cv::LINE_AA);
 
              //座標から一次関数を引く関数
@@ -523,11 +525,121 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
             std::cout <<"直線座標2=("<< tnanamel[i+1][2] <<","<<tnanamel[i+1][3]<<")"<< std::endl;
 
             cv::line(img_line4,cv::Point(tnanamel[i+1][0],tnanamel[i+1][1]),cv::Point(tnanamel[i+1][2],tnanamel[i+1][3]),cv::Scalar(255,0,0), 1, cv::LINE_AA);        
-            cv::line(img_dst,cv::Point(tnanamel[i+1][0],tnanamel[i+1][1]),cv::Point(tnanamel[i+1][2],tnanamel[i+1][3]),cv::Scalar(255,0,0), 1, cv::LINE_AA);        
-        }
+            cv::line(img_dst,cv::Point(tnanamel[i+1][0],tnanamel[i+1][1]),cv::Point(tnanamel[i+1][2],tnanamel[i+1][3]),cv::Scalar(255,0,0), 1, cv::LINE_AA);
 
-    } 
-   
+        }
+    }
+
+
+
+    std::cout <<"ナナメ線総数yokonanamei="<< yokonanamei <<std::endl;
+    MatrixXd N(2,yokonanamei);//Nは2行L列の行列
+    MatrixXd PC(2,yokonanamei);//推定交点
+    int fx=100,fy=200;
+    //一次関数を描写するための関数
+    double thetal[yokonanamei],l[yokonanamei][4],lc[yokonanamei];
+
+    //直線の作成(消失点と任意の点を端点とした線を作成する)
+   for(int j=0;yokonanamei>j;j++){
+    std::cout <<"j="<< j << std::endl;
+      N(0,j)=A[2][j][0][0];//直線の端点の座標x
+      N(1,j)=A[2][j][0][1];//直線の端点の座標y
+      std::cout <<"直線の端点の座標x_N(0,"<<j<<")="<< N(0,j) << std::endl;
+      std::cout <<"直線の端点の座標y_N(1,"<<j<<")="<< N(1,j) << std::endl;
+
+      PC(0,j)=A[2][j][1][0];//消失点真値(x座標)_観測データ=真値±ノイズ
+      PC(1,j)=A[2][j][1][1];//消失点真値(y座標)
+      std::cout <<"消失点真値(x座標)_PC(0,"<<j<<")="<< PC(0,j) << std::endl;
+      std::cout <<"消失点真値(y座標)_PC(1,"<<j<<")="<< PC(1,j) << std::endl;
+    
+  
+      //座標から一次関数を引く関数
+      thetal[j]=(M_PI/2)-(M_PI-atan2((PC(0,j)-N(0,j)),(PC(1,j)-N(1,j))));
+      lc[j]=((PC(0,j)-N(0,j))*(PC(0,j)-N(0,j)))+((PC(1,j)-N(1,j))*(PC(1,j)-N(1,j)));
+      l[j][0]=N(0,j)+(cos(-thetal[j])*sqrt(lc[j]))*10;//X1座標
+      l[j][1]=N(1,j)+(sin(-thetal[j])*sqrt(lc[j]))*10;//Y1座標
+      l[j][2]=N(0,j)+(cos(-thetal[j])*sqrt(lc[j]))*-10;//X2座標
+      l[j][3]=N(1,j)+(sin(-thetal[j])*sqrt(lc[j]))*-10;//Y2座標
+      //std::cout <<"直線の角度1θ="<< thetal[j] << std::endl;
+      //std::cout <<"直線座標1=("<< l[j][0] <<","<<l[j][1]<<")"<< std::endl;
+      //std::cout <<"直線座標2=("<< l[j][2] <<","<<l[j][3]<<")"<< std::endl;
+
+      cv::line(img_line3,cv::Point(l[j][0],l[j][1]),cv::Point(l[j][2],l[j][3]),cv::Scalar(150,50,0), 1, cv::LINE_AA);
+      cv::line(img_line3,cv::Point(PC(0,j),PC(1,j)),cv::Point(N(0,j),N(1,j)),cv::Scalar(150,50,0), 4, cv::LINE_AA);//直線の描写(青線)
+      cv::circle(img_line3,Point(N(0,j),N(1,j)),5,Scalar(255,150,0),-1);
+      cv::circle(img_line3,Point(PC(0,j),PC(1,j)),5,Scalar(0,150,255),-1);
+    }
+
+
+  //法線ベクトルを求める
+  //法線ベクトルは直線の90度なので90度回転させる
+  //ただし90度回転させただけなので、そのベクトルを単位ベクトル化することで法線ベクトルを作る(M2 4月研究参照)
+  MatrixXd R(2,2);
+  R(0,0)=cos(M_PI/2);
+  R(0,1)=-sin(M_PI/2);
+  R(1,0)=sin(M_PI/2);
+  R(1,1)=cos(M_PI/2);
+
+  //std::cout <<"回転行列R=\n"<< R << std::endl;
+
+  MatrixXd n(2,yokonanamei);
+  n=R*(PC-N);//直線を90度回転させたベクトルn
+  //for(int t=0;yokonanamei>t;t++){
+  //cv::line(img_line3,cv::Point(PC(0,t),PC(1,t)),cv::Point(PC(0,t)-n(0,t),PC(1,t)-n(1,t)),cv::Scalar(0,255,0), 4, cv::LINE_AA);//90度回転した直線(PC-nでベクトルから座標変換)(緑の線)
+  //}
+  
+  //std::cout <<"直線を90度回転させたベクトルn=\n"<< n << std::endl;
+
+  //法線ベクトルの大きさを１にする
+  MatrixXd na(2,yokonanamei);
+  MatrixXd na1(yokonanamei,0);
+  na=n.transpose()*n;//na=n^T*n（ルートの中身を計算）
+  na1=na.diagonal();//naを対角化することで要素の二乗の和を求める(例:a1^2+a2^2);
+  //std::cout <<"na=\n"<< na << std::endl;
+  //std::cout <<"naの対角行列=\n"<< na.diagonal() << std::endl;
+  MatrixXd n1(yokonanamei,1);
+  MatrixXd n2(2,yokonanamei);
+  MatrixXd n22(yokonanamei,1);
+  MatrixXd p0(yokonanamei,yokonanamei);
+  MatrixXd n3(2,2);
+  MatrixXd n30(yokonanamei,yokonanamei);
+  MatrixXd n4(2,1);
+  MatrixXd n40(2,1);
+  MatrixXd X(2,1);
+  MatrixXd X0(2,1);
+    
+  for(int t=0;yokonanamei>t;t++){
+    n1(t,0)=sqrt(na1(t,0));//ベクトルnの大きさ（二乗の和に対しルートをかける）
+    n2(0,t)=n(0,t)/n1(t,0);//法線ベクトル
+    n2(1,t)=n(1,t)/n1(t,0);//法線ベクトル
+    
+    //cv::line(img_line3,cv::Point(PC(0,t),PC(1,t)),cv::Point((PC(0,t)-n2(0,t)*100),(PC(1,t)-n2(1,t)*100)),cv::Scalar(0,0,255), 4, cv::LINE_AA);//法線ベクトル(描写時に100倍してる）(赤の線)
+    }
+
+  std::cout <<"n1=\n"<< n1 << std::endl;
+  std::cout <<"法線ベクトルn2=\n"<< n2 << std::endl;
+
+  //最小二乗法の計算
+  p0=n2.transpose()*N;//P0=nT*Nを計算//ここ要チェック------------------------------------------------
+  n3=n2*n2.transpose();//逆行列の内部を計算
+
+  //最小二乗法の計算
+  n4=n2*p0.diagonal();//nにP0の対角行列をかけている 
+  X=n3.inverse()*n4;//逆行列と法線ベクトルの転置を掛け算
+  
+  std::cout <<"p0=\n"<< p0 << std::endl;
+  std::cout <<"n3=\n"<< n3 << std::endl;
+  std::cout <<"n3の逆行列=\n"<< n3.inverse() << std::endl;
+  std::cout <<"n4=\n"<< n4 << std::endl;
+  std::cout <<"p0.diagonal()=\n"<< p0.diagonal() << std::endl;
+  std::cout <<"X=\n"<< X << std::endl;//推定交点
+
+  cv::circle(img_line3,Point(X(0,0),X(1,0)),8,Scalar(0,0,255),-1);
+  cv::circle(img_dst,Point(X(0,0),X(1,0)),8,Scalar(0,0,255),-1);
+
+  //cv::circle(img_line3,Point(X0(0,0),X0(1,0)),5,Scalar(255,0,255),-1);
+
+
     //縦線の角度のヒストグラムから平行線を見つける-----------------------------------------------------------------------
     // 変数の初期化
     int histot_i = 0;
@@ -637,14 +749,16 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     for(int i = 1; i < yokoi; i++){
         std::cout << A[0][i][1][3] << std::endl;
 
-        double valuey =  A[0][i][1][3];
+        double valuey =  datay[i];
+        //double valuey =  A[0][i][1][3];
         int county = 1;
     
         // ソートされているのだから、
         // 同じ値があるとすれば、後続に連続して並んでいるはず。
         // その回数をカウントする。
         for (i = i + 1; i < yokoi; ++i) {
-            if (valuey ==  A[0][i][1][3]) {
+            if (valuey ==  datay[i]) {
+            //if (valuey ==  A[0][i][1][3]) {
                 ++county;
             }
             else {
