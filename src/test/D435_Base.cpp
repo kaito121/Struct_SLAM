@@ -14,39 +14,25 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl_ros/point_cloud.h>
-#include <dynamic_reconfigure/server.h>//reconfig用
 #include <mutex>
-//#include <OpenCV1/wakuhairetu.h>//自作メッセージ用ヘッダ
 #include <algorithm>//並び替え用
 #include <math.h>
 #include <stdlib.h>//絶対値用関数
 #include <highgui.h>
-#include <visualization_msgs/Marker.h>//ラインマーカー用
 #include <cmath>
-#include <struct_slam/MaskImageData.h>//パッケージ名要変更（自分で作ったデータを取り込んで）
-#include <struct_slam/ImageMatchingData.h>
-#include <opencv2/ximgproc/fast_line_detector.hpp>//FLD
+
 #include <librealsense2/rs.hpp>//Realsenseの画角調整用
 
 
 ros::Subscriber sub;//データをsubcribeする奴
-ros::Publisher marker_pub;
-ros::Publisher marker_pub_W;
-// ros::Publisher image_pub;
 std::string win_src = "src";
-std::string win_edge = "edge";
 std::string win_dst = "dst";
-std::string win_dst2 = "dst2";
 std::string win_depth = "depth";
-std::string win_line = "line";
 
 
 using namespace std;
 using namespace cv;
 
-int best = 30;
-int kaisu= 0;
-cv::Mat RGBimage3;//ここで定義する必要がある
 
 void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Image::ConstPtr& depth_msg)
 {
@@ -79,46 +65,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         ROS_ERROR("Could not convert from '%s' to '32FC1'.",depth_msg->encoding.c_str());
         return ;}
         
-    std::cout << "kaisu=" << kaisu << std::endl;
     RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
     depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
-
-//画像マッチング（パラメータ推定）
-  cv::Mat img_prm[2], img_prmw[2], img_match, img_per, img_reg,img_gray;
-  cv::Scalar color[2] = { cv::Scalar(0, 0, 255), cv::Scalar(255, 0, 0) };
-
-  cv::Mat img_src = bridgeRGBImage->image.clone();
-  cv::Mat img_depth = depthimage;
-
-  /*//画像クロップ(近距離でほぼ一致)
-  cv::Rect roi(cv::Point(93, 95), cv::Size(640/1.6, 480/1.6));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
-  cv::Mat img_dst = img_depth(roi); // 切り出し画像
-  cv::Mat img_dst2;*/
-
-    //画像クロップ(中距離でほぼ一致)
-  cv::Rect roi(cv::Point(110, 95), cv::Size(640/1.6, 480/1.6));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
-  cv::Mat img_dst = img_depth(roi); // 切り出し画像
-  cv::Mat img_dst2;
-
-  resize(img_dst, img_dst2,cv::Size(), 1.6, 1.6);//クロップした画像を拡大
-
-
-cv::cvtColor(img_src, img_gray, cv::COLOR_RGB2GRAY);
-
-//FLD変換
-std::vector<cv::Vec4f> lines;
-cv::Ptr<cv::ximgproc::FastLineDetector> fld =  cv::ximgproc::createFastLineDetector();//特徴線クラスオブジェクトを作成
- fld->detect( img_gray, lines);//特徴線検索
-
- //FLDの線描写
-for(int i = 0; i < lines.size(); i++){
-    cv::line(img_src,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);  
-    //cv::line(img_depth,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA); 
-    cv::line(img_dst2,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.8, cv::LINE_AA);
-    }
-
-
-  
 
 
 
@@ -128,13 +76,11 @@ for(int i = 0; i < lines.size(); i++){
 
     cv::namedWindow(win_src, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_depth, cv::WINDOW_AUTOSIZE);
-    cv::namedWindow(win_dst, cv::WINDOW_AUTOSIZE);
-    cv::namedWindow(win_dst2, cv::WINDOW_AUTOSIZE);
+    //cv::namedWindow(win_dst, cv::WINDOW_AUTOSIZE);
 
-    cv::imshow(win_src, img_src);
-    cv::imshow(win_depth, img_depth);
-    cv::imshow(win_dst, img_dst);
-    cv::imshow(win_dst2, img_dst2);
+    cv::imshow(win_src, RGBimage);
+    cv::imshow(win_depth, depthimage);
+    //cv::imshow(win_dst, img_dst);
 
 
   	cv::waitKey(1);

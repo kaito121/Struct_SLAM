@@ -24,18 +24,19 @@
 #include <opencv2/imgproc.hpp>
 
 
+
 ros::Subscriber sub;//データをsubcribeする奴
 ros::Publisher  pub;
 ros::Publisher  waku_pub;
 std::string win_src = "src";//カメラ画像
-std::string win_depth = "depth";//深度画像（修正前）
-std::string win_depth4 = "depth4";//深度画像（修正前）
+std::string win_depth = "depth";//深度画像
 std::string win_dst = "dst";//カメラ画像+FLDの線表示
 std::string win_prev = "prev";
 std::string win_curr = "curr";
 std::string win_dst2 = "dst2";
 std::string win_dst3 = "dst3";
 std::string win_FeaturePoint = "FeaturePoint";//テンプレートマッチング用テンプレート画像
+std::string win_img_opt = "win_img_opt";
 
 using namespace std;
 using namespace cv;
@@ -87,55 +88,45 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 {
 	//変数宣言
 	cv_bridge::CvImagePtr bridgeRGBImage;//クラス::型//cv_brigeは画像変換するとこ
-    cv_bridge::CvImagePtr bridgedepthImage;//クラス::型//cv_brigeは画像変換するとこ
-    cv::Mat RGBimage;//opencvの画像
-    cv::Mat depthimage;//opencvの画像
-    cv::Mat img_depth2,img_depth3,img_depth4;//リサイズするdepthはここで定義しないとダメ
+  cv_bridge::CvImagePtr bridgedepthImage;//クラス::型//cv_brigeは画像変換するとこ
+  cv::Mat RGBimage;//opencvの画像
+  cv::Mat depthimage;//opencvの画像
 
 	//ROS_INFO("callback_functionが呼ばれたよ");
 	
-    try{//MAT形式変換
-       bridgeRGBImage=cv_bridge::toCvCopy(rgb_msg, sensor_msgs::image_encodings::BGR8);//MAT形式に変える
-       ROS_INFO("callBack");//printと秒数表示
-    }
+  try{//MAT形式変換
+     bridgeRGBImage=cv_bridge::toCvCopy(rgb_msg, sensor_msgs::image_encodings::BGR8);//MAT形式に変える
+     ROS_INFO("callBack");//printと秒数表示
+  }
 	//エラー処理
-    catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
-        std::cout<<"RGB_image_callback Error \n";
-        ROS_ERROR("Could not convert from '%s' to 'BGR8'.",
-        rgb_msg->encoding.c_str());
-        return ;
-    }
+  catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
+      std::cout<<"RGB_image_callback Error \n";
+      ROS_ERROR("Could not convert from '%s' to 'BGR8'.",
+      rgb_msg->encoding.c_str());
+      return ;
+  }
 
-    try{//MAT形式変換
-       bridgedepthImage=cv_bridge::toCvCopy(depth_msg, sensor_msgs::image_encodings::TYPE_32FC1);//MAT形式に変える
-       ROS_INFO("callBack");//printと秒数表示
-    }
+  try{//MAT形式変換
+     bridgedepthImage=cv_bridge::toCvCopy(depth_msg, sensor_msgs::image_encodings::TYPE_32FC1);//MAT形式に変える
+     ROS_INFO("callBack");//printと秒数表示
+  }
 	//エラー処理
-    catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
-        std::cout<<"depth_image_callback Error \n";
-        ROS_ERROR("Could not convert from '%s' to '32FC1'.",
-        depth_msg->encoding.c_str());
-        return ;
-    }
+  catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
+      std::cout<<"depth_image_callback Error \n";
+      ROS_ERROR("Could not convert from '%s' to '32FC1'.",
+      depth_msg->encoding.c_str());
+      return ;
+  }
     
 
-    RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
-    depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
-    //Depth修正----------------------------------------------------------------------------------------------------
-    img_depth2 = depthimage.clone();//depthの画像をコピーする
-    //画像クロップ(中距離でほぼ一致)
-    cv::Rect roi(cv::Point(110, 95), cv::Size(640/1.6, 480/1.6));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
-    cv::Mat img_dstdepth = depthimage(roi); // 切り出し画像
-    resize(img_dstdepth, img_depth3,cv::Size(), 1.6, 1.6);//クロップした画像を拡大
-    img_depth4 = img_depth3.clone();//depth3の画像をコピーする
-    cv::imshow(win_depth4, img_depth4);//クロップされたdepth画像
-    cv::imshow(win_depth, depthimage);//クロップされたdepth画像
+  RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
+  depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
 
     // pointcloud を作成
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     pointCloud->points.reserve(RGBimage.size().width*RGBimage.size().height);//点の数
 
-    	RGBimage.copyTo(img_dst);//ここ間違えていたので注意
+    RGBimage.copyTo(img_dst);//ここ間違えていたので注意
   if(kaisu==0){
     img_dst2 = RGBimage.clone();
     img_dst2 = cv::Scalar(0,0,0);
@@ -154,7 +145,7 @@ cvtColor(RGBimage,image_curr,COLOR_BGR2GRAY);
 if (reset == true) {
 		std::cout <<"初回検出プログラム"<< std::endl;//最初のフレーム
 		// 特徴点検出(グレースケール画像から特徴点検出)
-		cv::goodFeaturesToTrack(image_curr, points_curr, 150, 0.01, 10, cv::Mat(), 3, 3, 0, 0.04);
+		cv::goodFeaturesToTrack(image_curr, points_curr, 300, 0.01, 10, cv::Mat(), 3, 3, 0, 0.04);
 		cv::cornerSubPix(image_curr, points_curr, cv::Size(10, 10), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, 0.03));
 		points_prev = points_curr;//データのコピー
 		for (int i = 0; i < points_curr.size(); i++) {
@@ -259,13 +250,13 @@ if (reset == true) {
     //XYはimageのデータなのでpclにそのままもって行くとでかい そこである定数で割ることで食らうタリング座標に変換する-------------------------(1)
      jk.x=points_curr[i].x/X_wariai;//ピクセル距離をクラスタリング距離に変換
      jk.y=points_curr[i].y/Y_wariai;
-     jk.z=img_depth3.at<float>(points_curr[i])/1000;//ZはDepthデータなのでそのままで行ける
+     jk.z= depthimage.at<float>(points_curr[i])/1000;//ZはDepthデータなのでそのままで行ける
 
     pointCloud->points.emplace_back(jk);//ポイントクラウドに座標データを移動
     std::cout <<"pointCloud->points.back().z="<<pointCloud->points.back().z<<"_m"<< std::endl;
 
 	}
-  //オプティカルフローの全体平均を求める
+  /*//オプティカルフローの全体平均を求める
   Points_curr_average_X=Points_curr_average_X/points_curr.size();
   Points_curr_average_Y=Points_curr_average_Y/points_curr.size();
   Points_prev_average_X=Points_prev_average_X/points_prev.size();
@@ -273,6 +264,33 @@ if (reset == true) {
 
   cv::line(img_dst,cv::Point(100,380),cv::Point(100+Points_curr_average_X-Points_prev_average_X,380),cv::Scalar(255,0,0), 2, cv::LINE_AA);//線を描写する(オプティカルフローx軸方向)
   cv::line(img_dst,cv::Point(100,380),cv::Point(100,380+Points_curr_average_Y-Points_prev_average_Y),cv::Scalar(0,255,0), 2, cv::LINE_AA);//線を描写する(オプティカルフローy軸方向)
+
+    std::cout <<"100+Points_curr_average_X-Points_prev_average_X="<<Points_curr_average_X-Points_prev_average_X<< std::endl;
+    std::cout <<"380+Points_curr_average_Y-Points_prev_average_Y="<<Points_curr_average_Y-Points_prev_average_Y<< std::endl;
+    putText(img_dst,"100+Points_curr_average_X-Points_prev_average_X="+std::to_string(Points_curr_average_X-Points_prev_average_X),Point(100,130),0,0.5,Scalar(0,255,255),1);
+    putText(img_dst,"380+Points_curr_average_Y-Points_prev_average_Y="+std::to_string(Points_curr_average_Y-Points_prev_average_Y),Point(100,100),0,0.5,Scalar(0,255,255),1);
+    
+  cv::Mat img_opt;
+
+  if(kaisu!=0){
+  if(Points_curr_average_X-Points_prev_average_X>0){//Xがプラスの時
+    std::cout <<"Xプラス="<<Points_curr_average_X-Points_prev_average_X<< std::endl;
+    cv::line(img_dst,cv::Point((Points_curr_average_X-Points_prev_average_X)*2,0),cv::Point((Points_curr_average_X-Points_prev_average_X)*2,480),cv::Scalar(0,0,255), 2, cv::LINE_AA);
+    cv::Rect Opt_roi(cv::Point(10, 0), cv::Size(10+abs(Points_curr_average_X-Points_prev_average_X),480));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
+    img_opt = RGBimage(Opt_roi); // 切り出し画像
+    cv::imshow("win_img_opt", img_opt);
+  }
+  else{//Xがマイナスの時
+    std::cout <<"Xマイナス="<<Points_curr_average_X-Points_prev_average_X<< std::endl;
+    cv::line(img_dst,cv::Point(640+(Points_curr_average_X-Points_prev_average_X)*2,0),cv::Point(640+(Points_curr_average_X-Points_prev_average_X)*2,480),cv::Scalar(255,0,0), 2, cv::LINE_AA);
+    //cv::Rect Opt_roi(cv::Point(630+Points_curr_average_X-Points_prev_average_X, 0), cv::Size(abs(Points_curr_average_X-Points_prev_average_X),480));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
+    //img_opt = RGBimage(Opt_roi); // 切り出し画像
+    //cv::imshow("win_img_opt", img_opt);
+  }
+  }*/
+
+
+
 
 
 
@@ -325,7 +343,7 @@ if (reset == true) {
 
 		        cv::circle(img_dst, cv::Point((int)(pointCloud -> points[*pit].x*X_wariai), (int)(pointCloud -> points[*pit].y*Y_wariai)), 4, Scalar(B[j%12],G[j%12],R[j%12]), -1, cv::LINE_AA);//今の座標情報
 
-            std::cout <<"image_points["<<pointCloud -> points[*pit].x*X_wariai<<"]["<<pointCloud -> points[*pit].y*Y_wariai<<"]="<<pointCloud -> points[*pit].z<<"_m"<< std::endl;//画像座標
+            //std::cout <<"image_points["<<pointCloud -> points[*pit].x*X_wariai<<"]["<<pointCloud -> points[*pit].y*Y_wariai<<"]="<<pointCloud -> points[*pit].z<<"_m"<< std::endl;//画像座標
             
             //ここで並び替えを行っている
             if(MAXPY<=(pointCloud -> points[*pit].y * Y_wariai)){MAXPY = pointCloud -> points[*pit].y * Y_wariai;}//yの最大値(ピクセル座標)
@@ -339,14 +357,14 @@ if (reset == true) {
             pointCloud -> points[*pit].x = ((pointCloud -> points[*pit].x*X_wariai)-(RGBimage.size().width/2))/X_pcl; //ピクセル原点からpcl上のX原点変換(pcl座標)
             pointCloud -> points[*pit].y = ((pointCloud -> points[*pit].y*Y_wariai)-(RGBimage.size().height/2))/Y_pcl;//ピクセル原点からpcl上のY原点変換(pcl座標)
             pointCloud -> points[*pit].z *= Z_pcl;
-            std::cout <<"pointCloud_point["<<pointCloud -> points[*pit].x<<"]["<<pointCloud -> points[*pit].y<<"]="<<pointCloud -> points[*pit].z<<"_m"<< std::endl;//pointcloud上の座標
+            //std::cout <<"pointCloud_point["<<pointCloud -> points[*pit].x<<"]["<<pointCloud -> points[*pit].y<<"]="<<pointCloud -> points[*pit].z<<"_m"<< std::endl;//pointcloud上の座標
 
             //ここの段階でpointsがPCL座標になる
         }
 
         //ROS_INFO("おわり");//printと秒数表示
-    /*//itの回数が大枠の個数
-    //
+        /*//itの回数が大枠の個数
+    
         double CENPX,CENPXMAX,CENPXMIN,cenpx=1000,cenpxmin=1000,cenpxmax=1000;
         //pcl座標にpclをかけるとピクセル座標に変換される
          MINPX = pointCloud -> points[*(it->indices.end ()-1)].x * X_pcl +(RGBimage.size().width/2);//並び替えたのでitの最後の値がXの最小値となる(leftX)(ピクセル座標)
@@ -359,23 +377,23 @@ if (reset == true) {
         std::cout <<"MAXPX["<<MAXPX<<"]  MAXPY["<<MAXPY<<"]"<< std::endl;
         std::cout <<"CENPX["<<CENPX<<"]"<< std::endl;
 
-     for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit){ // 中心点にアクセスするループ(pit=グループ内の点番号
+        for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit){ // 中心点にアクセスするループ(pit=グループ内の点番号
        
-       //注目点のX座標を求めそのときのZ座標も求める
-        if(cenpx>=std::abs(CENPX-pointCloud -> points[*pit].x)){cenpx = std::abs(CENPX-pointCloud -> points[*pit].x);//大枠の中心点のX座標を求める
-            centerx = (pointCloud -> points[*pit].x * X_pcl +(RGBimage.size().width/2));//pcl座標にpcl定数でかけるとピクセル座標になりXsizeの半分の値を足して原点をピクセル原点に戻す(ピクセル座標)
-            centerz = pointCloud -> points[*pit].z;
-            }//if文終了
+          //注目点のX座標を求めそのときのZ座標も求める
+         if(cenpx>=std::abs(CENPX-pointCloud -> points[*pit].x)){cenpx = std::abs(CENPX-pointCloud -> points[*pit].x);//大枠の中心点のX座標を求める
+             centerx = (pointCloud -> points[*pit].x * X_pcl +(RGBimage.size().width/2));//pcl座標にpcl定数でかけるとピクセル座標になりXsizeの半分の値を足して原点をピクセル原点に戻す(ピクセル座標)
+             centerz = pointCloud -> points[*pit].z;
+             }//if文終了
         
-        if(cenpxmin>=std::abs(CENPXMIN-pointCloud -> points[*pit].x)){cenpxmin = std::abs(CENPXMIN-pointCloud -> points[*pit].x);//大枠の中心点とLeftXの間のX座標を求める
-            centerleftx = (pointCloud -> points[*pit].x * X_pcl +(RGBimage.size().width/2));//pcl座標にpcl定数でかけるとピクセル座標になりXsizeの半分の値を足して原点をピクセル原点に戻す(ピクセル座標)
-            centerleftz = pointCloud -> points[*pit].z;
-            }//if文終了
+          if(cenpxmin>=std::abs(CENPXMIN-pointCloud -> points[*pit].x)){cenpxmin = std::abs(CENPXMIN-pointCloud -> points[*pit].x);//大枠の中心点とLeftXの間のX座標を求める
+              centerleftx = (pointCloud -> points[*pit].x * X_pcl +(RGBimage.size().width/2));//pcl座標にpcl定数でかけるとピクセル座標になりXsizeの半分の値を足して原点をピクセル原点に戻す(ピクセル座標)
+              centerleftz = pointCloud -> points[*pit].z;
+              }//if文終了
 
-        if(cenpxmax>=std::abs(CENPXMAX-pointCloud -> points[*pit].x)){cenpxmax = std::abs(CENPXMAX-pointCloud -> points[*pit].x);//大枠の中心点とRightXの間のX座標を求める
-            centerrightx = (pointCloud -> points[*pit].x * X_pcl +(RGBimage.size().width/2));//pcl座標にpcl定数でかけるとピクセル座標になりXsizeの半分の値を足して原点をピクセル原点に戻す(ピクセル座標)
-            centerrightz = pointCloud -> points[*pit].z;
-            }//if文終了*/    
+          if(cenpxmax>=std::abs(CENPXMAX-pointCloud -> points[*pit].x)){cenpxmax = std::abs(CENPXMAX-pointCloud -> points[*pit].x);//大枠の中心点とRightXの間のX座標を求める
+              centerrightx = (pointCloud -> points[*pit].x * X_pcl +(RGBimage.size().width/2));//pcl座標にpcl定数でかけるとピクセル座標になりXsizeの半分の値を足して原点をピクセル原点に戻す(ピクセル座標)
+              centerrightz = pointCloud -> points[*pit].z;
+        }//if文終了*/    
       }//fot文終了
 
     //rightz = pointCloud -> points[*(it->indices.end ()-1)].z;
@@ -430,6 +448,7 @@ if (reset == true) {
 
 	//処理結果表示もここで行うこともできる（別関数でもあり
     cv::imshow("win_src", RGBimage);
+    cv::imshow("win_depth",depthimage);
     cv::imshow("win_dst", img_dst);
     cv::imshow("win_dst2", img_dst2);
     cv::imshow("win_dst3", img_dst3);
@@ -448,12 +467,10 @@ if (reset == true) {
 		cv::swap(image_curr, image_prev);// image_curr を image_prev に移す（交換する）
 		cv::swap(points_curr, points_prev);// points_curr を points_prev に移す（交換する）
 		kaisu=kaisu+1;//行列初期設定用変数
-    if(kaisu%50==0){img_dst2 = cv::Scalar(0,0,0),img_dst3 = cv::Scalar(0,0,0);}//100回で描写記録画像をリセット
+    if(kaisu%50==0){img_dst2 = cv::Scalar(0,0,0),img_dst3 = cv::Scalar(0,0,0);}//100回で描写記録画像をリセット	
 
 
 	cv::waitKey(1);
-
-
 
    //ros::spinにジャンプする
 }
@@ -477,8 +494,8 @@ void dynamicParamsCB(struct_slam::Depth_pclConfig &cfg, uint32_t level){
 
     }
 
-//メイン関数
 
+//メイン関数
 int main(int argc,char **argv){
 	ros::init(argc,argv,"opencv_main");
     	
@@ -488,15 +505,18 @@ int main(int argc,char **argv){
 	 //message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/camera/color/image_raw", 1);
 	 //message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/camera/depth/image_rect_raw", 1);
 
-   //Realsensesの時(roslaunch realsense2_camera demo_pointcloud.launch)
-	 message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
-	 message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+   //Realsensesの時(roslaunch realsense2_camera demo_pointcloud.launch)(RGB画像とDepth画像の画角がずれてる)
+	 //message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
+	 //message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
 
+  //Realsensesの時(roslaunch realsense2_camera rs_camera.launch align_depth:=true)(Depth修正版なのでこっちを使うこと)
+	 message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/camera/color/image_raw", 1);
+	 message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/camera/aligned_depth_to_color/image_raw", 1);
 
 
     //kinectのとき
     //message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/rgb/image_rect_color", 1);
-	//message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth_registered/image_raw", 1);
+	  //message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth_registered/image_raw", 1);
 
 	typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,sensor_msgs::Image> MySyncPolicy;	
 	message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10),rgb_sub, depth_sub);
@@ -509,7 +529,7 @@ int main(int argc,char **argv){
     ros::NodeHandle nhPub;
     pub=nhPub.advertise<sensor_msgs::PointCloud2>("depth_pcl", 1000);
     waku_pub=nhPub.advertise<struct_slam::wakuhairetu>("wakuhairetu", 1000);//パブリッシュ設定
-    	
+
 	ros::spin();
 	
 	return 0;

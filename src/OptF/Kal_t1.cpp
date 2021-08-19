@@ -134,7 +134,7 @@ int main()
     // 面積最大ラベルの選択
     cv::Mat stats, centroids;
     ROS_INFO("callback_functionが呼ばれたよ5");
-    int labelnum = cv::connectedComponentsWithStats(img_bin3, img_lbl, stats, centroids);
+    int labelnum = cv::connectedComponentsWithStats(img_bin3, img_lbl, stats, centroids);//オブジェクト検出
     std::cout <<"labelnum="<<labelnum<<std::endl;
     ROS_INFO("callback_functionが呼ばれたよ6");
     if (labelnum == 1) continue;

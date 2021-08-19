@@ -352,7 +352,7 @@ std::cout<<"test1"<<std::endl;
     waku.point_centerright.x = (centerrightx-(RGBimage.size().width/2))/X_pcl;
     waku.point_centerright.z = centerrightz;
 
-    pclP.pclP.emplace_back(waku);//配列に送るデータを追加
+    pclP.pclP.emplace_back(waku);//配列に送るデータを追加(wakuはwakuhairetu.hの中にある配列の名前)
     }
     pclP.header.stamp = ros::Time::now();//トピックにパブリッシュした（データを送った
     waku_pub.publish(pclP);

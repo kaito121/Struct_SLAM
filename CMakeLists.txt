@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   cv_bridge
+  image_transport
   message_filters
   pcl_ros
   geometry_msgs
@@ -22,6 +23,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   sensor_msgs
   tf
+  tf2
+  tf2_ros
   nav_msgs
 )
 
@@ -77,6 +80,7 @@ add_message_files(
    ClassificationData.msg
    ClassificationElement.msg
    opt_point.msg
+   marker_tf.msg
 
  )
 
@@ -137,6 +141,7 @@ add_message_files(
 catkin_package(
 
 CATKIN_DEPENDS roscpp sensor_msgs message_runtime 
+#CATKIN_DEPENDS roscpp rospy tf2
 
 
 #  LIBRARIES Struct_SLAM
@@ -579,10 +584,16 @@ add_dependencies(lines_prm3 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(lines_prm3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210519 RealsenseD435 Depth adjustment program
-add_executable(D435_test src/test/D435_test.cpp)
-add_dependencies(D435_test ${PROJECT_NAME}_gencfg)
-add_dependencies(D435_test ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(D435_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#add_executable(D435_test src/test/D435_test.cpp)
+#add_dependencies(D435_test ${PROJECT_NAME}_gencfg)
+#add_dependencies(D435_test ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(D435_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210519 RealsenseD435 Depth adjustment program
+add_executable(D435_test2 src/test/D435_test2.cpp)
+add_dependencies(D435_test2 ${PROJECT_NAME}_gencfg)
+add_dependencies(D435_test2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(D435_test2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210520 20210517_FLD_depth + D435_test
 add_executable(20210520_FLD_depth2 src/FLD/20210520_FLD_depth2.cpp)
@@ -919,10 +930,10 @@ add_dependencies(k-means ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(k-means ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210729 20210712_FLD copy Ver clustering_2
-add_executable(FLD_clustering_2 src/FLD/FLD_clustering_2.cpp)
-add_dependencies(FLD_clustering_2 ${PROJECT_NAME}_gencfg)
-add_dependencies(FLD_clustering_2 ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(FLD_clustering_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#add_executable(FLD_clustering_2 src/FLD/FLD_clustering_2.cpp)
+#add_dependencies(FLD_clustering_2 ${PROJECT_NAME}_gencfg)
+#add_dependencies(FLD_clustering_2 ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(FLD_clustering_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210712 20210712_FLD copy Ver +Vpoint(suitei)
 add_executable(20210712_FLD_Vpoint1 src/L2_sp3/20210712_FLD_Vpoint1.cpp)
@@ -949,11 +960,146 @@ add_dependencies(05-01 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(05-01 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210730 sample 
+add_executable(05-02_2 src/sample/05-02_2.cpp)
+add_dependencies(05-02_2 ${PROJECT_NAME}_gencfg)
+add_dependencies(05-02_2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(05-02_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210730 sample 
 add_executable(05-02 src/sample/05-02.cpp)
 add_dependencies(05-02 ${PROJECT_NAME}_gencfg)
 add_dependencies(05-02 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(05-02 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#20210731 sample 
+add_executable(vis_tf_broadcast src/tf/vis_tf_broadcast.cpp)
+add_dependencies(vis_tf_broadcast ${PROJECT_NAME}_gencfg)
+add_dependencies(vis_tf_broadcast ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(vis_tf_broadcast ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#20210731 sample 
+add_executable(vis_tf_listen src/tf/vis_tf_listen.cpp)
+add_dependencies(vis_tf_listen ${PROJECT_NAME}_gencfg)
+add_dependencies(vis_tf_listen ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(vis_tf_listen ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#20210731 sample 
+add_executable(image_publisher src/test/image_publisher.cpp)
+add_dependencies(image_publisher ${PROJECT_NAME}_gencfg)
+add_dependencies(image_publisher ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(image_publisher ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210731 sample 
+add_executable(image_subscriber src/test/image_subscriber.cpp)
+add_dependencies(image_subscriber ${PROJECT_NAME}_gencfg)
+add_dependencies(image_subscriber ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(image_subscriber ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210801 FLD_clustering_2 copy Ver Average_clustering_yokoline
+add_executable(FLD_clustering_3 src/FLD/FLD_clustering_3.cpp)
+add_dependencies(FLD_clustering_3 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering_3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering_3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210803 Marker
+add_executable(marker1 src/marker/marker1.cpp)
+add_dependencies(marker1 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210803 Marker
+add_executable(marker1_make src/marker/marker1_make.cpp)
+add_dependencies(marker1_make ${PROJECT_NAME}_gencfg)
+add_dependencies(marker1_make ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker1_make ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210803 sample 
+add_executable(robot_tf_broadcast src/tf/robot_tf_broadcast.cpp)
+add_dependencies(robot_tf_broadcast ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_tf_broadcast ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_tf_broadcast ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210803 sample 
+add_executable(robot_tf_listen src/tf/robot_tf_listen.cpp)
+add_dependencies(robot_tf_listen ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_tf_listen ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_tf_listen ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210803 sample 
+add_executable(robot_tf_listen_broad src/tf/robot_tf_listen_broad.cpp)
+add_dependencies(robot_tf_listen_broad ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_tf_listen_broad ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_tf_listen_broad ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210805 Marker https://github.com/naruya/aruco/blob/master/aruco.ipynb
+add_executable(marker2 src/marker/marker2.cpp)
+add_dependencies(marker2 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210805 Marker https://github.com/naruya/aruco/blob/master/aruco.ipynb
+add_executable(marker2_listen src/marker/marker2_listen.cpp)
+add_dependencies(marker2_listen ${PROJECT_NAME}_gencfg)
+add_dependencies(marker2_listen ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker2_listen ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210808 Marker https://github.com/naruya/aruco/blob/master/aruco.ipynb
+add_executable(marker3 src/marker/marker3.cpp)
+add_dependencies(marker3 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210809 Marker saisyouizyouhou gaibu_pram
+add_executable(marker4 src/marker/marker4.cpp)
+add_dependencies(marker4 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker4 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210810 Marker saisyouizyouhou gaibu_pram (marker4 copy)
+add_executable(marker04 src/marker/marker04.cpp)
+add_dependencies(marker04 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker04 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker04 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210814 Marker Depth_Error_repair (marker04 copy)
+add_executable(marker04_1 src/marker/marker04_1.cpp)
+add_dependencies(marker04_1 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker04_1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker04_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210814 Marker Depth_Error_repair (marker04 copy)
+add_executable(marker04_2 src/marker/marker04_2.cpp)
+add_dependencies(marker04_2 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker04_2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker04_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210816 Marker Depth_Error_repair (marker04_1 copy)
+add_executable(marker04_3 src/marker/marker04_3.cpp)
+add_dependencies(marker04_3 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker04_3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker04_3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210810 Marker4 copy Ver hukusuu
+add_executable(marker5 src/marker/marker5.cpp)
+add_dependencies(marker5 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker5 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker5 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210816 hidaka
+add_executable(marker_hidaka src/marker/hidaka/marker_hidaka.cpp)
+add_dependencies(marker_hidaka ${PROJECT_NAME}_gencfg)
+add_dependencies(marker_hidaka ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker_hidaka ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210818 hidaka
+add_executable(marker_hidaka_1 src/marker/hidaka/marker_hidaka_1.cpp)
+add_dependencies(marker_hidaka_1 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker_hidaka_1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker_hidaka_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210818 hidaka marker+Feature point
+add_executable(marker_hidaka_point src/marker/hidaka/marker_hidaka_point.cpp)
+add_dependencies(marker_hidaka_point ${PROJECT_NAME}_gencfg)
+add_dependencies(marker_hidaka_point ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker_hidaka_point ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
