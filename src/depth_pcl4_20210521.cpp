@@ -226,7 +226,8 @@ std::cout<<"test1"<<std::endl;
                         //std::cout <<"["<<position[1]<<"]["<<position[0]<<"]=P="<<cutdepth_img.at<float>(position[0],position[1])<< std::endl;//printf
                      });
                      A[x][y]=(siro/(W*H))*100;//ピクセル内の白の割合
-                      }}
+        }
+    }
 
                      //結果表示
    for(int x=0;x<RGBimage.size().width;x=x+W){

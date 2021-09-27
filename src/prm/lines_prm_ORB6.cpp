@@ -10,6 +10,7 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl_ros/point_cloud.h>
 #include <dynamic_reconfigure/server.h>//reconfig用
@@ -86,7 +87,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     cv_bridge::CvImagePtr bridgedepthImage;//クラス::型//cv_brigeは画像変換するとこ
     cv::Mat RGBimage;//opencvの画像
     cv::Mat depthimage;//opencvの画像
-    cv::Mat img_depth2,img_depth3,img_depth4;//リサイズするdepthはここで定義しないとダメ
 
 	//ROS_INFO("callback_functionが呼ばれたよ");
 	
@@ -117,14 +117,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
     RGBimage = bridgeRGBImage->image.clone();//image変数に変換した画像データを代入
     depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
-    //Depth修正----------------------------------------------------------------------------------------------------
-    img_depth2 = depthimage.clone();//depthの画像をコピーする
-    //画像クロップ(中距離でほぼ一致)
-    cv::Rect roi(cv::Point(110, 95), cv::Size(640/1.6, 480/1.6));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
-    cv::Mat img_dstdepth = depthimage(roi); // 切り出し画像
-    resize(img_dstdepth, img_depth3,cv::Size(), 1.6, 1.6);//クロップした画像を拡大
-    img_depth4 = img_depth3.clone();//depth3の画像をコピーする
-    cv::imshow(win_depth4, img_depth4);//クロップされたdepth画像
 
     // pointcloud を作成
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -271,7 +263,7 @@ if (reset == true) {
     //XYはimageのデータなのでpclにそのままもって行くとでかい そこである定数で割ることで食らうタリング座標に変換する-------------------------(1)
      jk.x=points_curr[i].x/X_wariai;//ピクセル距離をクラスタリング距離に変換
      jk.y=points_curr[i].y/Y_wariai;
-     jk.z=img_depth3.at<float>(points_curr[i])/1000;//ZはDepthデータなのでそのままで行ける
+     jk.z=depthimage.at<float>(cv::Point(points_curr[i]))/1000;//ZはDepthデータなのでそのままで行ける
 
 
     pointCloud->points.emplace_back(jk);//ポイントクラウドに座標データを移動
@@ -498,8 +490,10 @@ int main(int argc,char **argv){
 	ros::NodeHandle nhSub;
     //sub設定(データ受け取り)
   //Realsensesの時
-	 message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
-	 message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+	 //message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
+	 //message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+   message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/camera/color/image_raw", 1);//センサーメッセージを使うときは対応したヘッダーが必要
+	 message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/camera/aligned_depth_to_color/image_raw", 1);
 
     //kinectのとき
     //message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/rgb/image_rect_color", 1);

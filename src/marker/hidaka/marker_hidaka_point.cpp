@@ -4,6 +4,9 @@
 
 //日高先生の手法で外部パラメータの算出を行ってみる
 //この手法ではカメラは台車に固定されている事を前提としているため、y方向は動かず,x,z方向のみになっている。
+//20210826 システムのサンプリング時間を取得したいがros time nowがうまく使えない（何故か値が出ない）
+//そこで今はWalltimeで代用するが、ここで問題が発生する可能性があるので今後修繕が必要
+//https://8ttyan.hatenablog.com/entry/2015/02/03/003428
 #define _CRT_SECURE_NO_WARNINGS
 #include <ros/ros.h>
 #include <iostream>
@@ -35,7 +38,8 @@
 #include "struct_slam/Conversions/conversion.h"
 
 #include <nav_msgs/Path.h>//経路情報を記録する
-
+#include <time.h>//処理の時間を出力する
+#include <sys/time.h>
 
 std::string win_src = "src";
 std::string win_dst = "dst";
@@ -83,6 +87,21 @@ cv::Mat_<float> Xp = cv::Mat_<float>(4, 1);//外部パラメータ（日高手�
 cv::Mat_<float> XpPLAS = cv::Mat_<float>::zeros(4, 1);
 float pixel[50][4][2],depth[100],point[50][4][3],x,y,r2,f,ux,uy;//画像→カメラ座標変換
 
+ros::Time ros_begin;//プログラム時間
+ros::WallTime wall_begin = ros::WallTime::now();//プログラム開始時の時間
+ros::WallDuration wall_prev;//一つ前の時間
+ros::WallDuration wall_systemtime;//サンプリング時間
+//ros::Time ros_begin = ros::Time::now();
+struct timeval startTime, endTime;  // 構造体宣言
+float realsec;//サンプリング時間（C++)
+
+cv::Mat_<float> xEst = cv::Mat_<float>::zeros(3, 1);//状態方程式（カメラ）
+cv::Mat_<float> Ft = cv::Mat_<float>(3, 3);//回転行列
+cv::Mat_<float> Vt = cv::Mat_<float>(3, 1);//並進ベクトル
+
+
+
+
 struct Camera_Base{
     float x;
     float y;
@@ -90,12 +109,44 @@ struct Camera_Base{
 };
 struct Camera_Base camera_base;
 
-
-
 //コールバック関数
 void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Image::ConstPtr& depth_msg, const sensor_msgs::CameraInfo::ConstPtr& cam_info)
 {
-	//変数宣言
+  ROS_INFO("callback_functionが呼ばれたよ");
+
+  //サンプリング時間取得(C言語の方法)(こっちのほうが正確らしい)
+  gettimeofday(&startTime, NULL);// 開始時刻取得
+  if(kaisu!=0){
+    time_t diffsec = difftime(startTime.tv_sec, endTime.tv_sec);    // 秒数の差分を計算
+    suseconds_t diffsub = startTime.tv_usec - endTime.tv_usec;      // マイクロ秒部分の差分を計算
+    realsec = diffsec+diffsub*1e-6;                          // 実時間を計算
+    printf("処理の時間=%f\n", realsec);
+  }
+  //gettimeofday(&endTime, NULL);// 開始時刻取得
+  //if(kaisu!=0){
+  //  time_t diffsec = difftime(endTime.tv_sec, startTime.tv_sec);    // 秒数の差分を計算
+  //  suseconds_t diffsub = endTime.tv_usec - startTime.tv_usec;      // マイクロ秒部分の差分を計算
+  //  realsec = diffsec+diffsub*1e-6;                          // 実時間を計算
+  //  printf("処理の時間=%f\n", realsec);
+  //} 
+  //サンプリング時間取得(ROS)
+  ros::WallTime wall_now = ros::WallTime::now();
+  ros::WallDuration wall_duration = wall_now - wall_begin;
+  ROS_INFO("WALL:%u.%09u", wall_duration.sec, wall_duration.nsec);
+  wall_systemtime = wall_duration - wall_prev;
+  //ROS_INFO("systemtime:%u.%09u", wall_systemtime.sec, wall_systemtime.nsec);
+  std::cout << "wall_systemtime=" <<wall_systemtime<< std::endl;//サンプリング時間
+	
+  //if(kaisu==0){ros_begin = ros::Time::now();}
+    //ros::Time ros_now = ros::Time::now();
+    //ros::Duration ros_duration = ros_now - ros_begin;
+    //ROS_INFO("ROS: %u.09%u", ros_duration.sec, ros_duration.nsec);
+    //ROS_INFO("%lf",ros::Time::now().toSec());
+    //double  ros_nowt = ros::Time::now().toSec();
+    //fout << t << std::endl;
+
+
+    //変数宣言
   cv_bridge::CvImagePtr bridgeImage;//クラス::型//cv_brigeは画像変換するとこ
   cv_bridge::CvImagePtr bridgedepthImage;//クラス::型//cv_brigeは画像変換するとこ
   cv::Mat RGBimage,depthimage,image;
@@ -105,13 +156,11 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   Quaternion quaternionVal(1,2,3,4);
   RotationMatrix rotationMatrixVal(array);
 
-	ROS_INFO("callback_functionが呼ばれたよ");
-	
     try{//MAT形式変換
        bridgeImage=cv_bridge::toCvCopy(rgb_msg, sensor_msgs::image_encodings::BGR8);//MAT形式に変える
        ROS_INFO("callBack");//printと秒数表示
     }
-	//エラー処理
+	  //エラー処理
     catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
         std::cout<<"depth_image_callback Error \n";
         ROS_ERROR("Could not convert from '%s' to 'BGR8'.",rgb_msg->encoding.c_str());
@@ -120,13 +169,12 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     try{//MAT形式変換
        bridgedepthImage=cv_bridge::toCvCopy(depth_msg, sensor_msgs::image_encodings::TYPE_32FC1);//MAT形式に変える
        ROS_INFO("callBack");}//printと秒数表示
-    
-	//エラー処理
+	  //エラー処理
     catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
         std::cout<<"depth_image_callback Error \n";
         ROS_ERROR("Could not convert from '%s' to '32FC1'.",depth_msg->encoding.c_str());
         return ;}
-    
+  
   camera_info=*cam_info;//CameraInfo受け取り
   //std::cout << "camera_info.K[0]=" <<camera_info.K[0]<< std::endl;//内部パラメータ
   //std::cout << "camera_info.K[1]=" <<camera_info.K[1]<< std::endl;
@@ -134,16 +182,29 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   //std::cout << "camera_info.K[3]=" <<camera_info.K[3]<< std::endl;
   //std::cout << "camera_info.K[4]=" <<camera_info.K[4]<< std::endl;
   //std::cout << "camera_info.K[5]=" <<camera_info.K[5]<< std::endl;
-
-    
+   
   image = bridgeImage->image.clone();//image変数に変換した画像データを代入
   depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
+
+  //Depth画像の色付けを行なっている
+  double min;
+  double max;
+  cv::minMaxIdx(depthimage, &min, &max);
+  cv::Mat adjimg_depth;
+  // Histogram Equalization
+  float scale = 255 / (max-min);
+  depthimage.convertTo(adjimg_depth,CV_8UC1, scale, -min*scale); 
+  cv::Mat falseColorsimg_depth;
+  applyColorMap(adjimg_depth, falseColorsimg_depth, cv::COLORMAP_WINTER);//ここのcvで色を変えられる
+  cv::imshow("Out", falseColorsimg_depth);
 
   image.copyTo(img_dst);//
   image.copyTo(img_dst1);//特徴点検出結果表示用
 
   cv::Mat imageCopy = image.clone();
   cv::Mat_<float> intrinsic_K= cv::Mat_<float>(3, 3);
+	std::cout <<"画像取り込み"<< std::endl;
+
 
   //カルマンフィルタ初期設定---------------------------------------------------------------------------------------------------------
   if(kaisu==0){
@@ -192,6 +253,10 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 	cv::cvtColor(image, image_curr, cv::COLOR_BGR2GRAY);//グレースケール化
   //初回検出プログラム-----------------------------------------------------------------------------------------------------
   if (reset == true) {
+	  std::cout <<"初回検出プログラム"<< std::endl;
+	  std::cout <<"test1"<< std::endl;
+
+
     int depth_point_prev_ok=0; //depth取得可能な特徴点の数
     swap_on=false;
     //cv::goodFeaturesToTrack(今画像, 前画像, 特徴点の個数, 0.01, 10, cv::Mat(), 3, 3, 0, 0.04);
@@ -199,12 +264,14 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 		cv::cornerSubPix(image_curr, points_curr, cv::Size(10, 10), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, 0.03));
 		points_prev = points_curr;//データのコピ
     camera_point_p.resize(points_prev.size());//要素数初期設定
+	  std::cout <<"test2_points_prev.size()="<<points_prev.size()<< std::endl;
+
     
 		for (int i = 0; i < points_prev.size(); i++) {
 			cv::circle(imageCopy, points_prev[i], 6, Scalar(255,0,0), -1, cv::LINE_AA);
       //画像→カメラ座標変換----------------------------------------------------------------------
-      //↓Depthがうまく取得できない時にsegment fualtになる(下の修正を行ってもエラーが出るので別の修正が必要20210818)
-      depth_point_prev[i] = depthimage.at<float>(points_prev[i].x,points_prev[i].y);
+      depth_point_prev[i] = depthimage.at<float>(cv::Point(points_prev[i].x,points_prev[i].y));
+	    std::cout <<"test3_i="<<i<< std::endl;
 
       //Depthが取得できない特徴点を削除する+Depthの外れ値を除く
       if(depth_point_prev[i]>0.001&&depth_point_prev[i]<10000){
@@ -215,11 +282,16 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         //std::cout << "特徴点のカメラ座標:camera_point_p[depth_point_prev_ok="<<depth_point_prev_ok<<"]={"<< camera_point_p[depth_point_prev_ok].x <<","<<camera_point_p[depth_point_prev_ok].y<<","<<camera_point_p[depth_point_prev_ok].z<<"}"<< std::endl;
         points_prev[depth_point_prev_ok] = points_prev[i];
         depth_point_prev_ok=depth_point_prev_ok+1;//Depth取得可能の個数をカウント
+	      std::cout <<"test4"<< std::endl;
+
       }
 		}
     points_prev.resize(depth_point_prev_ok);//Depth取得可能数でリサイズ(二次元)
+	  std::cout <<"test5"<< std::endl;
     camera_point_p.resize(depth_point_prev_ok);//Depth取得可能数でリサイズ(三次元カメラ座標)
     reset = false;//if文切り替え
+	  std::cout <<"初回検出プログラム終了"<< std::endl;
+
   }
   //オプティカルフロー-------------------------------------------------------------------------------------
   else{
@@ -249,7 +321,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 	  camera_point_p.resize(k);
 	  camera_point_c.resize(k);
 		
-
 	  // 特徴点を丸で描く-------------------------------------------------------------------------------------------
 	  for (int i = 0; i < points_curr.size(); i++) {
       //std::cout <<"OPT後マッチングの中心座標["<<i<<"]="<<points_curr[i]<< std::endl;
@@ -260,8 +331,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       cv::line(imageCopy,cv::Point(points_prev[i].x,points_curr[i].y),cv::Point(points_prev[i]),cv::Scalar(0,255,0), 1, cv::LINE_AA);//線を描写する
     
       //画像→カメラ座標変換----------------------------------------------------------------------
-      //↓Depthがうまく取得できない時にsegment fualtになる(下の修正を行ってもエラーが出るので別の修正が必要20210818)
-      depth_point_curr[i] = depthimage.at<float>(points_curr[i].x,points_curr[i].y);
+      depth_point_curr[i] = depthimage.at<float>(cv::Point(points_curr[i].x,points_curr[i].y));
       //Depthが取得できない特徴点を削除する+Depthの外れ値を除く
       if(depth_point_curr[i]>0.001&&depth_point_curr[i]<10000){
         camera_point_c[depth_point_curr_ok].x = depth_point_curr[i] * ((points_curr[i].x - camera_info.K[2]) / camera_info.K[0])/1000;//メートル表示変換
@@ -323,7 +393,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   cv::FileStorage fs;
   fs.open("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/realsense_para.xml", cv::FileStorage::READ);
   fs["intrinsic"]>>cameraMatrix;
-  //std::cout << "内部パラメータcameraMatrix=\n" << cameraMatrix << std::endl;
+  std::cout << "内部パラメータcameraMatrix=\n" << cameraMatrix << std::endl;
   intrinsic_K=cameraMatrix;
 
   //カメラの歪みパラメータ読み込み
@@ -404,14 +474,14 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         pixel[markerIds.at(i)][j][0]=MarkerC[markerIds.at(i)][j][0];
         pixel[markerIds.at(i)][j][1]=MarkerC[markerIds.at(i)][j][1];
         std::cout <<"MarkerC[markerIds.at(i)="<<markerIds.at(i)<<"][j="<<j<<"][0]="<<MarkerC[markerIds.at(i)][j][0]<<",MarkerC[markerIds.at(i)="<<markerIds.at(i)<<"][j="<<j<<"][1]="<<MarkerC[markerIds.at(i)][j][1]<< std::endl;
-        //↓Depthがうまく取得できない時にsegment fualtになる(下の修正を行ってもエラーが出るので別の修正が必要20210818)
-        depth[j] = depthimage.at<float>(pixel[markerIds.at(i)][j][0],pixel[markerIds.at(i)][j][1]);
+        depth[j] = depthimage.at<float>(cv::Point(pixel[markerIds.at(i)][j][0],pixel[markerIds.at(i)][j][1]));
         //std::cout <<"depth["<<markerIds.at(i)<<"]["<<j<<"]="<< depth[j]<< std::endl;
 
         //Depthが取得できないコーナーを削除する+Depthの外れ値を除く
         if(depth[j]>0&&depth[j]<10000){
           x = (pixel[markerIds.at(i)][j][0] - camera_info.K[2]) / camera_info.K[0];
           y = (pixel[markerIds.at(i)][j][1] - camera_info.K[5]) / camera_info.K[4];
+          //camera_info.K[0]=615.337,camera_info.K[2]=324.473,camera_info.K[4]=615.458,camera_info.K[5]=241.696//内部パラメータ
 
           point[markerIds.at(i)][j][0] = depth[j] * x/1000;//メートル表示変換
           point[markerIds.at(i)][j][1] = depth[j] * y/1000;
@@ -424,6 +494,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         }
       }
       std::cout <<"depth_ok["<<markerIds.at(i)<<"]="<< depth_ok[markerIds.at(i)]<< std::endl;
+
     }
     cv::Mat_<float> MarkerCameraALL=cv::Mat_<float>(ALL_depth_ok, 4);//マーカーのカメラ座標の行列
     cv::Mat_<float> MarkerWorldALL=cv::Mat_<float>(ALL_depth_ok, 3);//マーカーの世界座標の行列
@@ -450,17 +521,39 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       std::cout <<"Ot_1=\n"<<Ot_1<< std::endl;
       
       cv::Mat_<float> Ot_1T = cv::Mat_<float>(4, 4);
-
       Ot_1T=Ot_1.t()*Ot_1;
       Xp=Ot_1T.inv(cv::DECOMP_SVD)*Ot_1.t()*Pt;
       //std::cout <<"Ot_1T=\n"<<Ot_1T<< std::endl;
-      std::cout <<"Xp=\n"<<Xp<< std::endl;
+      std::cout <<"Xp=\n"<<Xp<< std::endl;//推定外部パラメータ[cos,sin,tx,ty]
       XpPLAS=XpPLAS+Xp;
-      
       std::cout <<"XpPLAS=\n"<<XpPLAS<< std::endl;
+
+      //外部パラメータから角速度を求める
+      float tan=Xp(0,1)/Xp(0,0);//tan=sin/cos
+      std::cout <<"tan="<<tan<< std::endl;
+      float theta=atan(tan);
+      std::cout <<"theta="<<theta<< std::endl;
+      float omega=theta/wall_systemtime.toSec ();
+      std::cout <<"omega="<<omega<< std::endl;
+      float omega2=theta/realsec;
+      std::cout <<"omega2="<<omega2<< std::endl;
+      
+      Ft(0,0)=1,Ft(0,1)=0,Ft(0,2)=-omega2;
+      Ft(1,0)=0,Ft(1,1)=1,Ft(2,2)=0,
+      Ft(2,0)=omega2,Ft(2,1)=0,Ft(2,2)=1;
+      std::cout <<"Ft=\n"<<Ft<< std::endl;//回転行列
+
+      //外部パラメータから速度を求める
+      Vt(0,0)=Xp(0,2)/realsec;//Vx
+      Vt(1,0)=Xp(0,3)/realsec;//Vz
+      std::cout <<"vx="<<Vt(0,0)<<",vz="<<Vt(1,0)<< std::endl;//並進ベクトル
+
+      //状態方程式（自己位置推定）
+      xEst=Ft*xEst-Vt;
+      xEst(1,0)=0;
+      std::cout <<"xEst=\n"<<xEst<< std::endl;
+      
     }
-
-
 
 /*
 //最小二乗法を用いた外部パラメータの算出-----------------------------------------------------------------------------
@@ -510,10 +603,20 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
       //マーカーの一つ前の座標と今の座標から最小二乗法を用いて外部パラメータを算出する
       //座標配列化
-      //初回
+      //初回*/
 
 
-  //tf(観測マーカー)-------------------------------------------------------------------------------------------------観測マーカー
+
+      //MLength_prve[markerIds.at(i)]=MLength[markerIds.at(i)];//一つ前の距離に保存
+      //MAngle_prve[markerIds.at(i)]=MAngle[markerIds.at(i)];//一つ前の角度に保存
+    
+    for(int i=0;i<markerIds.size();i++){
+      for(int j=0;j<4;j++){
+        point_prve[markerIds.at(i)][j][0]=point[markerIds.at(i)][j][0];//今のカメラ座標を保存
+        point_prve[markerIds.at(i)][j][1]=point[markerIds.at(i)][j][1];
+        point_prve[markerIds.at(i)][j][2]=point[markerIds.at(i)][j][2];
+      }
+      //tf(観測マーカー)-------------------------------------------------------------------------------------------------観測マーカー
       std::string target_maker_frame = "marker_link";//cameraとマーカー間のリンク
       geometry_msgs::Pose maker_pose;
 
@@ -527,20 +630,53 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       static tf::TransformBroadcaster br_maker;
       tf::Transform maker_transform;
       poseMsgToTF(maker_pose, maker_transform);
-      //br_maker.sendTransform(tf::StampedTransform(maker_transform, ros::Time::now(), target_maker_frame, "/camera_link"));
       br_maker.sendTransform(tf::StampedTransform(maker_transform, ros::Time::now(), "/camera_link", target_maker_frame));
-      //br_maker.sendTransform(tf::StampedTransform(maker_transform, ros::Time::now(), "/robot1/camera_link", target_maker_frame));
+      //tf(観測マーカー)-------------------------------------------------------------------------------------------------観測マーカー
+      std::string target_maker_frame1 = "marker_link1";//cameraとマーカー間のリンク
+      geometry_msgs::Pose maker_pose1;
 
+      std::cout << "tf特徴点のカメラ座標1:point["<<markerIds.at(i)<<"][0]={x="<< point[markerIds.at(i)][0][2] <<",y="<<-point[markerIds.at(i)][0][0]<<",z="<<-point[markerIds.at(i)][0][1]<<"}"<< std::endl;
 
-      //MLength_prve[markerIds.at(i)]=MLength[markerIds.at(i)];//一つ前の距離に保存
-      //MAngle_prve[markerIds.at(i)]=MAngle[markerIds.at(i)];//一つ前の角度に保存
-    */ 
-    for(int i=0;i<markerIds.size();i++){
-      for(int j=0;j<4;j++){
-        point_prve[markerIds.at(i)][j][0]=point[markerIds.at(i)][j][0];//今のカメラ座標を保存
-        point_prve[markerIds.at(i)][j][1]=point[markerIds.at(i)][j][1];
-        point_prve[markerIds.at(i)][j][2]=point[markerIds.at(i)][j][2];
-      }
+      maker_pose1.position.x = point[markerIds.at(i)][1][2];//Rvizと画像は座標系が異なるので注意
+      maker_pose1.position.y = -point[markerIds.at(i)][1][0];
+      maker_pose1.position.z = -point[markerIds.at(i)][1][1];
+      maker_pose1.orientation.w = 1.0;
+
+      static tf::TransformBroadcaster br_maker1;
+      tf::Transform maker_transform1;
+      poseMsgToTF(maker_pose1, maker_transform1);
+      br_maker1.sendTransform(tf::StampedTransform(maker_transform1, ros::Time::now(), "/camera_link", target_maker_frame1));
+      //tf(観測マーカー)-------------------------------------------------------------------------------------------------観測マーカー
+      std::string target_maker_frame2 = "marker_link2";//cameraとマーカー間のリンク
+      geometry_msgs::Pose maker_pose2;
+
+      std::cout << "tf特徴点のカメラ座標2:point["<<markerIds.at(i)<<"][0]={x="<< point[markerIds.at(i)][0][2] <<",y="<<-point[markerIds.at(i)][0][0]<<",z="<<-point[markerIds.at(i)][0][1]<<"}"<< std::endl;
+
+      maker_pose2.position.x = point[markerIds.at(i)][2][2];//Rvizと画像は座標系が異なるので注意
+      maker_pose2.position.y = -point[markerIds.at(i)][2][0];
+      maker_pose2.position.z = -point[markerIds.at(i)][2][1];
+      maker_pose2.orientation.w = 1.0;
+
+      static tf::TransformBroadcaster br_maker2;
+      tf::Transform maker_transform2;
+      poseMsgToTF(maker_pose2, maker_transform2);
+      br_maker2.sendTransform(tf::StampedTransform(maker_transform2, ros::Time::now(), "/camera_link", target_maker_frame2));
+      //tf(観測マーカー)-------------------------------------------------------------------------------------------------観測マーカー
+      std::string target_maker_frame3 = "marker_link3";//cameraとマーカー間のリンク
+      geometry_msgs::Pose maker_pose3;
+
+      std::cout << "tf特徴点のカメラ座標3:point["<<markerIds.at(i)<<"][0]={x="<< point[markerIds.at(i)][0][2] <<",y="<<-point[markerIds.at(i)][0][0]<<",z="<<-point[markerIds.at(i)][0][1]<<"}"<< std::endl;
+
+      maker_pose3.position.x = point[markerIds.at(i)][3][2];//Rvizと画像は座標系が異なるので注意
+      maker_pose3.position.y = -point[markerIds.at(i)][3][0];
+      maker_pose3.position.z = -point[markerIds.at(i)][3][1];
+      maker_pose3.orientation.w = 1.0;
+
+      static tf::TransformBroadcaster br_maker3;
+      tf::Transform maker_transform3;
+      poseMsgToTF(maker_pose3, maker_transform3);
+      br_maker3.sendTransform(tf::StampedTransform(maker_transform3, ros::Time::now(), "/camera_link", target_maker_frame3));
+
     }
   }
 
@@ -582,7 +718,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     poseMsgToTF(Camera_BasetoCamera_Link_pose, Camera_BasetoCamera_transform);
     br_Camera_BasetoCamera_Link_pose.sendTransform(tf::StampedTransform(Camera_BasetoCamera_transform, ros::Time::now(), MaptoCamera_Base_frame, "camera_link"));
 
-    kaisu++;
+    
 
     //std::cout << "観測マーカーと地図上のマーカーとの差を計算(座標)={"<< 
     //marker_tf2.Tfodometry.pose.pose.position.x <<","<<marker_tf2.Tfodometry.pose.pose.position.y<<","<<marker_tf2.Tfodometry.pose.pose.position.z<<"}"<< std::endl;
@@ -591,14 +727,17 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     // 画面表示
     cv::imshow(win_src, image);
     cv::imshow(win_dst, imageCopy);
-    cv::imshow(win_depth, depthimage);
+    //cv::imshow(win_depth, depthimage);
 
     cv::swap(image_curr, image_prev);// image_curr を image_prev に移す（交換する）
     if(swap_on ==true){//初回プログラム実行時はswapしない(データの浅いコピーの影響を考慮)
       cv::swap(points_curr, points_prev);//二次元画像座標を保存(points_curr→points_prev)
       cv::swap(camera_point_c, camera_point_p);//三次元カメラ座標を保存(camera_point_c→camera_point_p)
       }
-
+    wall_prev=wall_duration;
+    kaisu++;
+    //startTime=endTime;
+    endTime=startTime;//動作終了時刻取得
     cv::waitKey(1);//ros::spinにジャンプする
 }
 
@@ -618,6 +757,7 @@ int main(int argc,char **argv){
 
 	ros::init(argc,argv,"marker2");//rosを初期化
 	ros::NodeHandle nhSub;//ノードハンドル
+  if(kaisu!=0){ros_begin = ros::Time::now();}
 	//subscriber関連
   //Realsensesの時(roslaunch realsense2_camera rs_camera.launch align_depth:=true)(Depth修正版なのでこっちを使うこと)
 	message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/camera/color/image_raw", 1);//センサーメッセージを使うときは対応したヘッダーが必要

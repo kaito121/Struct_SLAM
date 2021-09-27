@@ -1,4 +1,3 @@
-//Depth調整バージョン(D435_test.cppを参照)
 //rosのヘッダ
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>//センサーデータ形式ヘッダ
@@ -17,10 +16,7 @@
 
 ros::Subscriber sub;//データをsubcribeする奴
 std::string win_src = "src";//カメラ画像
-std::string win_depth = "depth";//深度画像（修正前）
-std::string win_depth2 = "depth2";//深度画像（修正前）+FLD線
-std::string win_depth3 = "depth3";//深度画像（修正後）
-std::string win_depth4 = "depth4";//深度画像（修正後）+FLD線
+std::string win_depth = "depth";//深度画像
 std::string win_edge = "edge";
 std::string win_dst = "dst";//カメラ画像+FLDの線表示
 std::string win_line = "line";//FLDの線を表示
@@ -119,8 +115,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         ROS_ERROR("Could not convert from '%s' to '32FC1'.",depth_msg->encoding.c_str());
         return ;}
 
-    image = bridgeImage->image.clone();//image変数に変換した画像データを代入
-    depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
+    cv::Mat img_src = bridgeImage->image.clone();//image変数に変換した画像データを代入
+    cv::Mat img_depth = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
 
     //カルマンフィルタ初期設定---------------------------------------------------------------------------------------------------------
     float yosokuX[karuman],yosokuY[karuman],yosoku_haniX[karuman],yosoku_haniY[karuman];//カルマンフィルタ出力変数
@@ -150,10 +146,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
 
     //ここに処理項目
-	cv::Mat img_src = image;
-    cv::Mat img_depth = depthimage;
+	
     cv::Mat img_gray,img_gray2,img_edge,img_dst,img_line,img_line2,img_line3,img_line4,img_line5,img_graph;
-    cv::Mat img_depth2,img_depth3,img_depth4;
     double theta[1000],theta0,theta90;
     float dep,dep1[300],dep2[300];
 
@@ -178,14 +172,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     cv::line(img_graph,cv::Point(90*3,0),cv::Point(90*3,480),cv::Scalar(0,0,0), 1, cv::LINE_AA);//180度(180*3)
     cv::line(img_graph,cv::Point(80*3,0),cv::Point(80*3,480),cv::Scalar(0,255,0), 1, cv::LINE_AA);//180度(180*3)
     cv::line(img_graph,cv::Point(10*3,0),cv::Point(10*3,480),cv::Scalar(0,0,255), 1, cv::LINE_AA);//180度(180*3)
-
-    //Depth修正----------------------------------------------------------------------------------------------------------------
-    img_depth2 = img_depth.clone();//depthの画像をコピーする
-    //画像クロップ(中距離でほぼ一致)
-    cv::Rect roi(cv::Point(110, 95), cv::Size(640/1.6, 480/1.6));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
-    cv::Mat img_dstdepth = img_depth(roi); // 切り出し画像
-    resize(img_dstdepth, img_depth3,cv::Size(), 1.6, 1.6);//クロップした画像を拡大
-    img_depth4 = img_depth3.clone();//depth3の画像をコピーする
     
     //Y軸との角度(詳しくは2月の研究ノート)
     theta0=M_PI-atan2((200-0),(100-100));//水平(θ=π/2=1.5708)
@@ -206,17 +192,22 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     for(int i = 0; i < lines.size(); i++){
        //cv::line(img_dst,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);  
        cv::line(img_line,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA); 
-      // cv::line(img_line2,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
-      // cv::line(img_depth2,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
-       //cv::line(img_depth4,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
+       cv::line(img_line2,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
     }
 
+
     cv::cvtColor(img_line, img_gray2, cv::COLOR_RGB2GRAY);
-    cv::Canny(img_gray2, img_edge, 200, 200);
+    cv::Canny(img_gray2, img_edge, 125, 255);
+    //cv::Canny(img_gray2, img_edge, 200, 200);
 
     //確率的ハフ変換(元画像・lines)
     std::vector<cv::Vec4i> lines2;
-    cv::HoughLinesP(img_edge, lines2, 1, CV_PI/180, 80,30,10);
+    cv::HoughLinesP(img_edge, lines2, 1, CV_PI/180, 20,30,10);
+
+
+    //確率的ハフ変換(元画像・lines)
+    //std::vector<cv::Vec4i> lines2;
+    //cv::HoughLinesP(img_edge, lines2, 1, CV_PI/180, 80,30,10);
 
     
     //FLD＋確率ハフ変換抽出線とY軸との角度を求める+三次元距離データの結合
@@ -224,8 +215,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     int ksk=0;
     for(int i =  0; i < lines2.size(); i++){
 
-        dep1[i]= img_depth3.at<float>(lines2[i][0],lines2[i][1]);//点の三次元距離データ取得
-        dep2[i]= img_depth3.at<float>(lines2[i][2],lines2[i][3]);
+        dep1[i]= img_depth.at<float>(lines2[i][0],lines2[i][1]);//点の三次元距離データ取得
+        dep2[i]= img_depth.at<float>(lines2[i][2],lines2[i][3]);
         //cv::line(img_line2,cv::Point(lines2[i][0],lines2[i][1]),cv::Point(lines2[i][2],lines2[i][3]),cv::Scalar(255,0,0), 2, cv::LINE_AA);
 
         if(dep1[i]>0 && dep2[i]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
@@ -335,6 +326,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
             yokoZ1[yokoyouso]=dep1[j];
             yokoZ2[yokoyouso]=dep2[j];
             cv::line(img_line3,cv::Point(yokolines2[yokoyouso][0],yokolines2[yokoyouso][1]),cv::Point(yokolines2[yokoyouso][2],yokolines2[yokoyouso][3]),cv::Scalar(0,255,0), 2, cv::LINE_AA);
+            cv::line(img_line2,cv::Point(yokolines2[yokoyouso][0],yokolines2[yokoyouso][1]),cv::Point(yokolines2[yokoyouso][2],yokolines2[yokoyouso][3]),cv::Scalar(0,255,0), 2, cv::LINE_AA);
 
             yokotheta[yokoyouso]=(theta[j]*360)/(2*M_PI);//deg表示化
             std::cout <<"yokotheta["<<yokoyouso<<"]="<<yokotheta[yokoyouso]<< std::endl;
@@ -362,6 +354,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
                 tateZ1[tateyouso]=dep1[j];
                 tateZ2[tateyouso]=dep2[j];
                 cv::line(img_line3,cv::Point(tatelines2[tateyouso][0], tatelines2[tateyouso][1]),cv::Point(tatelines2[tateyouso][2],tatelines2[tateyouso][3]),cv::Scalar(0,0,255), 2, cv::LINE_AA);
+                cv::line(img_line2,cv::Point(tatelines2[tateyouso][0], tatelines2[tateyouso][1]),cv::Point(tatelines2[tateyouso][2],tatelines2[tateyouso][3]),cv::Scalar(0,0,255), 2, cv::LINE_AA);
 
                 tatetheta[tateyouso]=(theta[j]*360)/(2*M_PI);//deg表示化
                 std::cout <<"tatetheta["<<tateyouso<<"]="<<tatetheta[tateyouso]<< std::endl;
@@ -660,7 +653,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
                             Average_yoko_theta[clusCY]=Average_yoko_theta[clusCY]/clusy[clusCY];//角度の平均を求める
                         }
                         else{//クラスタの要素が一つしかない時
-                            Average_yoko_theta[clusCY]=Average_yoko_theta[clusCY];//角度の平均を求める
+                            Average_yoko_theta[clusCY]=Average_yoko_theta[clusCY];//角度の平均=要素(要素がひとつしかないから=平均)
                         }
                         std::cout <<"中間動作範囲外:クラスタ平均角度Average_yoko_theta["<<clusCY<<"]="<<Average_yoko_theta[clusCY]<<"--------------------------------"<< std::endl;
                         //要素数が５個以上のクラスタをキープする
@@ -727,7 +720,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
             std::cout <<"clusy["<<j<<"]="<<j<< std::endl;//クラスタの内部個数
             //std::cout <<"yokoclusy["<<YOKO_CLUST<<"]["<<j<<"][0]="<<yokoclusy[YOKO_CLUST][j][0]<< std::endl;//確認用
 
-            //座標から一次関数を引く関数
+            //座標から一次関数を引く関数(線を延長してる)
             yokothetal[j]=(M_PI/2)-(M_PI-atan2((yokoclusy[YOKO_CLUST][j][2]-yokoclusy[YOKO_CLUST][j][0]),(yokoclusy[YOKO_CLUST][j][3]-yokoclusy[YOKO_CLUST][j][1])));
             yokolc[j]=(yokoclusy[YOKO_CLUST][j][2]-yokoclusy[YOKO_CLUST][j][0])*(yokoclusy[YOKO_CLUST][j][2]-yokoclusy[YOKO_CLUST][j][0])+(yokoclusy[YOKO_CLUST][j][3]-yokoclusy[YOKO_CLUST][j][1])*(yokoclusy[YOKO_CLUST][j][3]-yokoclusy[YOKO_CLUST][j][1]);
             yokol[j][0]=yokoclusy[YOKO_CLUST][j][0]+(cos(-yokothetal[j])*sqrt(yokolc[j]))*10;//X1座標
@@ -990,27 +983,23 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     //cv::namedWindow(win_depth, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_dst, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_line, cv::WINDOW_AUTOSIZE);
-    //cv::namedWindow(win_line2, cv::WINDOW_AUTOSIZE);
+    cv::namedWindow(win_line2, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_line3, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_line4, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_line5, cv::WINDOW_AUTOSIZE);
-    //cv::namedWindow(win_depth2, cv::WINDOW_AUTOSIZE);
-    //cv::namedWindow(win_depth3, cv::WINDOW_AUTOSIZE);
-    //cv::namedWindow(win_depth4, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_graph, cv::WINDOW_AUTOSIZE);
+
    
     cv::imshow(win_src, img_src);
     //cv::imshow(win_depth, img_depth);
     cv::imshow(win_dst, img_dst);
     cv::imshow(win_line, img_line);
-    //cv::imshow(win_line2, img_line2);
+    cv::imshow(win_line2, img_line2);
     cv::imshow(win_line3, img_line3);
     cv::imshow(win_line4, img_line4);
     cv::imshow(win_line5, img_line5);
-    //cv::imshow(win_depth2, img_depth2);
-    //cv::imshow(win_depth3, img_depth3);
-    //cv::imshow(win_depth4, img_depth4);
     cv::imshow(win_graph, img_graph);
+
  
 	cv::waitKey(1);
    //ros::spinにジャンプする
@@ -1019,12 +1008,16 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 //メイン関数
 int main(int argc,char **argv){
 
-	ros::init(argc,argv,"opencv_main");//rosを初期化
+	ros::init(argc,argv,"FLD_clustering_3");//rosを初期化
 	ros::NodeHandle nhSub;//ノードハンドル
 	
 	//subscriber関連
-	message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
-	message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+	//message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
+	//message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+
+    //Realsensesの時(roslaunch realsense2_camera rs_camera.launch align_depth:=true)(Depth修正版なのでこっちを使うこと)
+	message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/camera/color/image_raw", 1);//センサーメッセージを使うときは対応したヘッダーが必要
+	message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/camera/aligned_depth_to_color/image_raw", 1);
 
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,sensor_msgs::Image> MySyncPolicy;	
 	message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10),rgb_sub, depth_sub);

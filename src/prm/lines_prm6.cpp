@@ -250,8 +250,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
     //確率的ハフ変換座標と三次元距離データの結合と画像描写
     for(int i = 0; i < lines.size(); i++){
-        dep1[i]= img_depth3.at<float>(lines[i][0],lines[i][1]);//点の三次元距離データ取得
-        dep2[i]= img_depth3.at<float>(lines[i][2],lines[i][3]);
+        dep1[i]= img_depth3.at<float>(cv::Point(lines[i][0],lines[i][1]));//点の三次元距離データ取得
+        dep2[i]= img_depth3.at<float>(cv::Point(lines[i][2],lines[i][3]));
 
         if(dep1[i]>0 && dep2[i]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
           dep= dep1[i] - dep2[i];
@@ -629,13 +629,13 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
           std::cout <<"チェックA["<<j<<"]["<<i<<"][1][3]= "<<A[j][i][1][3]<< std::endl;//A[グループ番号][個数番号][点1or点2][要素]
 
           geometry_msgs::Point p;
-          p.x = A[j][i][0][0]*0.007;
-          p.z = A[j][i][0][1]*0.007;
+          p.x = A[j][i][0][0]*0.07;
+          p.z = A[j][i][0][1]*0.07;
           p.y = A[j][i][0][2]*0.001;
             // ラインリストは、各ラインに2点必要
           line_list.points.push_back(p);
-          p.x =A[j][i][1][0]*0.007;
-          p.z =A[j][i][1][1]*0.007;
+          p.x =A[j][i][1][0]*0.07;
+          p.z =A[j][i][1][1]*0.07;
           p.y =A[j][i][1][2]*0.001;
           line_list.points.push_back(p);
 

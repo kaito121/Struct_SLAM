@@ -17,10 +17,7 @@
 
 ros::Subscriber sub;//データをsubcribeする奴
 std::string win_src = "src";//カメラ画像
-std::string win_depth = "depth";//深度画像（修正前）
-std::string win_depth2 = "depth2";//深度画像（修正前）+FLD線
-std::string win_depth3 = "depth3";//深度画像（修正後）
-std::string win_depth4 = "depth4";//深度画像（修正後）+FLD線
+std::string win_depth = "depth";//深度画像
 std::string win_edge = "edge";
 std::string win_dst = "dst";//カメラ画像+FLDの線表示
 std::string win_line = "line";//FLDの線を表示
@@ -113,8 +110,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         ROS_ERROR("Could not convert from '%s' to '32FC1'.",depth_msg->encoding.c_str());
         return ;}
 
-    image = bridgeImage->image.clone();//image変数に変換した画像データを代入
-    depthimage = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
+    cv::Mat img_src = bridgeImage->image.clone();//image変数に変換した画像データを代入
+    cv::Mat img_depth = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
 
  //カルマンフィルタ初期設定---------------------------------------------------------------------------------------------------------
   /*float yosokuX[karuman],yosokuY[karuman],yosoku_haniX[karuman],yosoku_haniY[karuman];//カルマンフィルタ出力変数
@@ -144,10 +141,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
 
 //ここに処理項目
-	cv::Mat img_src = image;
-    cv::Mat img_depth = depthimage;
     cv::Mat img_gray,img_gray2,img_edge,img_dst,img_line,img_line2,img_line3,img_line4;
-    cv::Mat img_depth2,img_depth3,img_depth4;
     double theta[1000],theta0,theta90;
     float dep,dep1[100],dep2[100];
 
@@ -160,15 +154,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     img_line3 = cv::Scalar(255,255,255);
     img_line4 = img_src.clone();
     img_line4 = cv::Scalar(255,255,255);
-
-    //Depth修正
-    img_depth2 = img_depth.clone();//depthの画像をコピーする
-    //画像クロップ(中距離でほぼ一致)
-    cv::Rect roi(cv::Point(110, 95), cv::Size(640/1.6, 480/1.6));//このサイズでDepth画像を切り取るとほぼカメラ画像と一致する
-    cv::Mat img_dstdepth = img_depth(roi); // 切り出し画像
-    resize(img_dstdepth, img_depth3,cv::Size(), 1.6, 1.6);//クロップした画像を拡大
-    img_depth4 = img_depth3.clone();//depth3の画像をコピーする
-    
 
     //Y軸との角度(詳しくは2月の研究ノート)
     theta0=M_PI-atan2((200-0),(100-100));//水平(θ=π/2=1.5708)
@@ -190,8 +175,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
        //cv::line(img_dst,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);  
        cv::line(img_line,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA); 
       // cv::line(img_line2,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
-      // cv::line(img_depth2,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
-       //cv::line(img_depth4,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
     }
 
     cv::cvtColor(img_line, img_gray2, cv::COLOR_RGB2GRAY);
@@ -206,8 +189,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     std::cout <<"並び替え前"<<std::endl;
     for(int i = 0; i < lines2.size(); i++){
 
-     dep1[i]= img_depth3.at<float>(lines2[i][0],lines2[i][1]);//点の三次元距離データ取得
-     dep2[i]= img_depth3.at<float>(lines2[i][2],lines2[i][3]);
+     dep1[i]= img_depth.at<float>(lines2[i][0],lines2[i][1]);//点の三次元距離データ取得
+     dep2[i]= img_depth.at<float>(lines2[i][2],lines2[i][3]);
      //cv::line(img_line2,cv::Point(lines2[i][0],lines2[i][1]),cv::Point(lines2[i][2],lines2[i][3]),cv::Scalar(255,0,0), 2, cv::LINE_AA);
 
      if(dep1[i]>0 && dep2[i]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
@@ -809,9 +792,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     //cv::namedWindow(win_line2, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_line3, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_line4, cv::WINDOW_AUTOSIZE);
-    //cv::namedWindow(win_depth2, cv::WINDOW_AUTOSIZE);
-    //cv::namedWindow(win_depth3, cv::WINDOW_AUTOSIZE);
-    //cv::namedWindow(win_depth4, cv::WINDOW_AUTOSIZE);
    
     cv::imshow(win_src, img_src);
     //cv::imshow(win_depth, img_depth);
@@ -820,9 +800,6 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     //cv::imshow(win_line2, img_line2);
     cv::imshow(win_line3, img_line3);
     cv::imshow(win_line4, img_line4);
-    //cv::imshow(win_depth2, img_depth2);
-    //cv::imshow(win_depth3, img_depth3);
-    //cv::imshow(win_depth4, img_depth4);
  
 	cv::waitKey(1);
    //ros::spinにジャンプする
@@ -835,8 +812,13 @@ int main(int argc,char **argv){
 	ros::NodeHandle nhSub;//ノードハンドル
 	
 	//subscriber関連
-	message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
-	message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+	//message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
+	//message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+
+    //Realsensesの時(roslaunch realsense2_camera rs_camera.launch align_depth:=true)(Depth修正版なのでこっちを使うこと)
+	message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/camera/color/image_raw", 1);//センサーメッセージを使うときは対応したヘッダーが必要
+	message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/camera/aligned_depth_to_color/image_raw", 1);
+
 
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,sensor_msgs::Image> MySyncPolicy;	
 	message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10),rgb_sub, depth_sub);

@@ -1,4 +1,3 @@
-//Depth調整バージョン(D435_test.cppを参照)
 //rosのヘッダ
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>//センサーデータ形式ヘッダ
@@ -151,33 +150,50 @@ std::cout <<"初期設定"<< std::endl;
 
  }
 
-//--------------------------------------------------------------------------------------------------------------------------
+//状態関数を定義する--------------------------------------------------------------------------------------------------------------------------
 std::cout <<"状態方程式"<< std::endl;
 
-//状態方程式
+//ホイールオドメトリー
 uR = u[0] + normW1(mt);//右のタイヤ(雑音計算）
 uL = u[1] + normW1(mt);//左のタイヤ(雑音計算)
 
+std::cout <<"uR="<<uR<< std::endl;
+std::cout <<"uL="<<uL<< std::endl;
+
+//ロボットの速度v
 vAct = (uR+uL)/2;//雑音あり
 vDes = (u[0]+u[1])/2;//雑音なし
 
+std::cout <<"vAct="<<vAct<< std::endl;
+std::cout <<"vDes="<<vDes<< std::endl;
+
+//ロボットの角速度ω
 omegaAct = (uR-uL)/(2*d);//雑音あり
 omegaDes = (u[0]-u[1])/(2*d);//雑音なし
 
+std::cout <<"omegaAct="<<omegaAct<< std::endl;
+std::cout <<"omegaDes="<<omegaDes<< std::endl;
+
+std::cout <<"xAct[0]="<<xAct[0]<< std::endl;
+std::cout <<"xAct[1]="<<xAct[1]<< std::endl;
+std::cout <<"xAct[2]="<<xAct[2]<< std::endl;
+
 //雑音の影響を考慮した実際の状態
-//xAct[0] = xAct[0] + vAct * Ts *cos(xAct[2]+omegaAct*Ts/2);//ロボットの状態x
-//xAct[1] = xAct[1] + vAct * Ts *sin(xAct[2]+omegaAct*Ts/2);//ロボットの状態y
-//xAct[2] = xAct[2] + omegaAct * Ts;//ロボットの状態θ
-
-xAct[0] = xAct[0] + vAct * Ts *cos(xAct[2]+Ts/2);//ロボットの状態x
-xAct[1] = xAct[1] + vAct * Ts *sin(xAct[2]+Ts/2);//ロボットの状態y
-xAct[2] = xAct[2] + Ts;//ロボットの状態θ
-
+xAct[0] = xAct[0] + vAct * Ts *cos(xAct[2]+omegaAct*Ts/2);//ロボットの状態x
+xAct[1] = xAct[1] + vAct * Ts *sin(xAct[2]+omegaAct*Ts/2);//ロボットの状態y
+xAct[2] = xAct[2] + omegaAct * Ts;//ロボットの状態θ
 
 xACT= (cv::Mat_<float>(3,1) <<
 xAct[0],
 xAct[1],
 xAct[2]);
+
+std::cout <<"xACT="<<xACT<< std::endl;
+
+
+std::cout <<"xDes[0]="<<xDes[0]<< std::endl;
+std::cout <<"xDes[1]="<<xDes[1]<< std::endl;
+std::cout <<"xDes[2]="<<xDes[2]<< std::endl;
 
 //目標指令状態
 xDes[0] = xDes[0] + vDes * Ts *cos(xDes[2]+omegaDes*Ts/2);
@@ -189,32 +205,60 @@ xDes[0],
 xDes[1],
 xDes[2]);
 
-//出力方程式(ロボットの現在の位置から見たLMまでの距離と角度)
+std::cout <<"xDES="<<xDES<< std::endl;
+
+//出力方程式(ロボットの現在の位置から見たLMまでの距離と角度)(観測方程式h)
 z[0]=sqrt((LM[0]-xAct[0])*(LM[0]-xAct[0]) + (LM[1]-xAct[1])*(LM[1]-xAct[1])) + normV1(mt);
 z[1]=atan2(LM[1]-xAct[1],LM[0]-xAct[0]) - xAct[2] + normV2(mt);
 
 z[2]=sqrt((LM[2]-xAct[0])*(LM[2]-xAct[0]) + (LM[3]-xAct[1])*(LM[3]-xAct[1])) + normV1(mt);
 z[3]=atan2(LM[3]-xAct[1],LM[2]-xAct[0]) - xAct[2] + normV2(mt);
 
+std::cout <<"z[0]="<<z[0]<< std::endl;
+std::cout <<"z[1]="<<z[1]<< std::endl;
+std::cout <<"z[2]="<<z[2]<< std::endl;
+std::cout <<"z[3]="<<z[3]<< std::endl;
+
+
 //予測ステップ-----------------------------------------------------------------------------------------------------
 std::cout <<"予測ステップ"<< std::endl;
 
-Ft= (cv::Mat_<float>(3,3) << //共分散Q
-    1, 0, -vDes * Ts *sin(xEst[2]+omegaDes*Ts/2),
-    0, 1, vDes * Ts *cos(xEst[2]+omegaDes*Ts/2),
+Ft= (cv::Mat_<float>(3,3) << 
+    1, 0, -vAct * Ts *sin(xEst[2]+omegaAct*Ts/2),
+    0, 1, vAct * Ts *cos(xEst[2]+omegaAct*Ts/2),
     0, 0, 1);
+//Ft= (cv::Mat_<float>(3,3) << 
+//    1, 0, -vDes * Ts *sin(xEst[2]+omegaDes*Ts/2),
+//    0, 1, vDes * Ts *cos(xEst[2]+omegaDes*Ts/2),
+//    0, 0, 1);
 
+
+std::cout <<"Ft="<<Ft<< std::endl;
+
+std::cout <<"xEst[0]="<<xEst[0]<< std::endl;
+std::cout <<"xEst[1]="<<xEst[1]<< std::endl;
+std::cout <<"xEst[2]="<<xEst[2]<< std::endl;
 //推定状態の予測
-xEst[0] = xEst[0] + vDes * Ts *cos(xEst[2]+omegaDes*Ts/2);//推定状態(一つ前のxEstから現在のロボットの状態xEstを推定)
-xEst[1] = xEst[1] + vDes * Ts *sin(xEst[2]+omegaDes*Ts/2);
-xEst[2] = xEst[2] + omegaDes * Ts;
+xEst[0] = xEst[0] + vAct * Ts *cos(xEst[2]+omegaAct*Ts/2);//推定状態(一つ前のxEstから現在のロボットの状態xEstを推定)
+xEst[1] = xEst[1] + vAct * Ts *sin(xEst[2]+omegaAct*Ts/2);
+xEst[2] = xEst[2] + omegaAct * Ts;
+
+//xEst[0] = xEst[0] + vDes * Ts *cos(xEst[2]+omegaDes*Ts/2);//推定状態(一つ前のxEstから現在のロボットの状態xEstを推定)
+//xEst[1] = xEst[1] + vDes * Ts *sin(xEst[2]+omegaDes*Ts/2);
+//xEst[2] = xEst[2] + omegaDes * Ts;
+
 
 xEST= (cv::Mat_<float>(3,1) <<
 xEst[0],
 xEst[1],
 xEst[2]);
 
+std::cout <<"xEST="<<xEST<< std::endl;
+
+
 P = Ft*P*Ft.t()+Q;//誤差共分散の予測
+std::cout <<"P="<<P<< std::endl;
+
 
 //更新ステップ-------------------------------------------------------------------------------------
 std::cout <<"更新ステップ"<< std::endl;
@@ -230,41 +274,50 @@ Ht= (cv::Mat_<float>(4,3) << //共分散Q
    -(LM[3]-xEst[1])/(((LM[3]-xEst[1])*(LM[3]-xEst[1]))+((LM[2]-xEst[0])*(LM[2]-xEst[0]))), 
    -(LM[2]-xEst[0])/(((LM[3]-xEst[1])*(LM[3]-xEst[1]))+((LM[2]-xEst[0])*(LM[2]-xEst[0]))), -1);
 
+std::cout <<"Ht="<<Ht<< std::endl;
 
-//出力方程式
+//出力方程式(予測されたロボットの現在の位置から見たLMまでの距離と角度の観測予測）
 zEst[0]=sqrt((LM[0]-xEst[0])*(LM[0]-xEst[0]) + (LM[1]-xEst[1])*(LM[1]-xEst[1]));
 zEst[1]=atan2(LM[1]-xEst[1],LM[0]-xEst[0]) - xEst[2];
 
 zEst[2]=sqrt((LM[2]-xEst[0])*(LM[2]-xEst[0]) + (LM[3]-xEst[1])*(LM[3]-xEst[1]));
 zEst[3]=atan2(LM[3]-xEst[1],LM[2]-xEst[0]) - xEst[2];
 
+std::cout <<"zEst[0]="<<zEst[0]<< std::endl;
+std::cout <<"zEst[1]="<<zEst[1]<< std::endl;
+std::cout <<"zEst[2]="<<zEst[2]<< std::endl;
+std::cout <<"zEst[3]="<<zEst[3]<< std::endl;
 
-//観測残渣yの計算
+//観測残差yの計算
 //y= (cv::Mat_<float>(1,2) <<
 //z[0] - zEst[0],
 //z[1] - zEst[1]);
 
-y= (cv::Mat_<float>(1,4) <<
+y= (cv::Mat_<float>(1,4) <<//観測残差yの計算（実際の観測データと予測された位置から見た観測の予測データ）
 z[0] - zEst[0],
 z[1] - zEst[1],
 z[2] - zEst[2],
 z[3] - zEst[3]);
-
-std::cout <<"観測残渣の共分散S"<< std::endl;
-
+std::cout <<"観測残差y=\n"<<y<< std::endl;
+std::cout <<"Ht=\n"<<Ht<< std::endl;
 
 S = Ht * P * Ht.t()+R;//観測残渣の共分散S
-std::cout <<"カルマンゲインの算出"<< std::endl;
+std::cout <<"観測残差の共分散S=\n"<<S<< std::endl;
+
 
 
 K = P * Ht.t() * S.inv();//カルマンゲインの算出
-std::cout <<"予測推定状態の更新"<< std::endl;
+std::cout <<"カルマンゲインの算出K=\n"<<K<< std::endl;
+
 
 
 xEST = xEST + K * y.t();//予測推定状態の更新
-std::cout <<"誤差共分散Pの更新"<< std::endl;
+std::cout <<"予測推定状態の更新xEST=\n"<<xEST<< std::endl;
+
 
 P = (I - K * Ht) * P;//誤差共分散Pの更新
+std::cout <<"誤差共分散Pの更新P=\n"<<P<< std::endl;
+
 
 std::cout <<"カルマンゲインK=\n"<<K<< std::endl;
 std::cout <<"推定の状態(更新)xEst=\n"<<xEST<< std::endl;
