@@ -386,9 +386,13 @@ for (int i = 0; i < points_curr.size(); i++) {
   tree->setInputCloud (pointCloud);
 
   pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
-  ec.setClusterTolerance (CLUSTER_TOLERANCE);//同じクラスタとみなす距離
-  ec.setMinClusterSize (MIN_CLUSTER_SIZE);//クラスタを構成する最小の点数
-  ec.setMaxClusterSize (MAX_CLUSTER_SIZE);//クラスタを構成する最大の点数
+  //ec.setClusterTolerance (CLUSTER_TOLERANCE);//同じクラスタとみなす距離
+  //ec.setMinClusterSize (MIN_CLUSTER_SIZE);//クラスタを構成する最小の点数
+  //ec.setMaxClusterSize (MAX_CLUSTER_SIZE);//クラスタを構成する最大の点数
+  ec.setClusterTolerance (1000);//同じクラスタとみなす距離
+  ec.setMinClusterSize (3);//クラスタを構成する最小の点数
+  ec.setMaxClusterSize (30);//クラスタを構成する最大の点数
+
   ec.setSearchMethod (tree);//s探索方法
   ec.setInputCloud (pointCloud);//クラスタリングするポイントクラウドの指定
 
@@ -516,8 +520,11 @@ int main(int argc,char **argv){
 	ros::NodeHandle nhSub;//ノードハンドル
 	
 	//subscriber関連
-	message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
-	message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+	//message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/robot1/camera/color/image_raw", 1);
+	//message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/robot1/camera/depth/image_rect_raw", 1);
+
+  message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nhSub, "/camera/color/image_raw", 1);//センサーメッセージを使うときは対応したヘッダーが必要
+	message_filters::Subscriber<sensor_msgs::Image> depth_sub(nhSub, "/camera/aligned_depth_to_color/image_raw", 1);
 
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,sensor_msgs::Image> MySyncPolicy;	
 	message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10),rgb_sub, depth_sub);

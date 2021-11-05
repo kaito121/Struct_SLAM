@@ -31,7 +31,7 @@ cv::Mat img_dst,img_gray,img_akaze,img_orb,img_Harris;//画像定義
 vector<cv::Point2f> points_prev, points_curr;//特徴点定義
 vector<cv::Point3f> camera_point_p,camera_point_c;//特徴点定義
 sensor_msgs::CameraInfo camera_info;//CameraInfo受け取り用
-int kaisu;
+int kaisu,kosuu[20];
 
 
 ros::Time ros_begin;//プログラム時間
@@ -126,19 +126,28 @@ std::cout << "wall_systemtime=" <<wall_systemtime<< std::endl;//サンプリン�
 	//for (int i = 0; i < keyAkaze.size(); i++) {
   	//  cv::circle(img_dst, cv::Point(keyAkaze[i].x, keyAkaze[i].y), 3, cv::Scalar(0, 255, 0), 2);//緑
   	//}
-
+	//cv::ORB::create(nfeatures =500, scaleFactor =1.2f, nlevels = 2);
+	// # ORB::create(検出特徴点数, scale factor, ...)
 	cv::Ptr<cv::ORB>   orb   = cv::ORB::create(500, 1.2f, 2);
-	orb->detect(image, keyOrb);
-	//for (int i = 0; i < keyOrb.size(); i++) {
-  	//  cv::circle(img_dst, cv::Point(keyOrb[i].x, keyOrb[i].y), 3, cv::Scalar(255, 255, 0), 2);//水色
-  	//}
+	orb->detect(image, keyOrb);//キーポイントの検出
+	
+	//通常のfor分で取り出す場合
+	for(size_t i = 0, end = keyOrb.size(); i != end; ++i) {
+    	std::cout << keyOrb.at(i).pt << "\n";
+	}
+
+	////イテレータを使用した場合
+	//for(auto it = keyOrb.cbegin(), end = keyOrb.cend(); it != end; ++it) {
+    //	std::cout << it->pt << "\n";
+	//}
 
 	// 画像上にキーポイントの場所を描く
 	// # DrawMatchesFlags::DRAW_RICH_KEYPOINTS  キーポイントのサイズと方向を描く
 	cv::drawKeypoints(image, keyAkaze, img_akaze, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 	cv::drawKeypoints(image, keyOrb,   img_orb,   cv::Scalar(255, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
-
+	//std::cout <<"keyOrb="<<keyOrb[i].x<< std::endl;
+	
 	
 	
 	
@@ -159,6 +168,9 @@ std::cout << "wall_systemtime=" <<wall_systemtime<< std::endl;//サンプリン�
     cv::imshow(win_Harris, img_Harris);
     cv::imshow(win_akaze, img_akaze);
     cv::imshow(win_orb, img_orb);
+	std::cout << "配列初期設定kosuu["<<kaisu<<"]=" <<kosuu[kaisu]<< std::endl;//サンプリング時間
+
+
 	kaisu++;
 
     cv::waitKey(1);//ros::spinにジャンプする

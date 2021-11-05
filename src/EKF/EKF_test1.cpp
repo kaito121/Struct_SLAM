@@ -239,13 +239,13 @@ std::cout <<"xEst[0]="<<xEst[0]<< std::endl;
 std::cout <<"xEst[1]="<<xEst[1]<< std::endl;
 std::cout <<"xEst[2]="<<xEst[2]<< std::endl;
 //推定状態の予測
-xEst[0] = xEst[0] + vAct * Ts *cos(xEst[2]+omegaAct*Ts/2);//推定状態(一つ前のxEstから現在のロボットの状態xEstを推定)
-xEst[1] = xEst[1] + vAct * Ts *sin(xEst[2]+omegaAct*Ts/2);
-xEst[2] = xEst[2] + omegaAct * Ts;
+//xEst[0] = xEst[0] + vAct * Ts *cos(xEst[2]+omegaAct*Ts/2);//推定状態(一つ前のxEstから現在のロボットの状態xEstを推定)
+//xEst[1] = xEst[1] + vAct * Ts *sin(xEst[2]+omegaAct*Ts/2);
+//xEst[2] = xEst[2] + omegaAct * Ts;
 
-//xEst[0] = xEst[0] + vDes * Ts *cos(xEst[2]+omegaDes*Ts/2);//推定状態(一つ前のxEstから現在のロボットの状態xEstを推定)
-//xEst[1] = xEst[1] + vDes * Ts *sin(xEst[2]+omegaDes*Ts/2);
-//xEst[2] = xEst[2] + omegaDes * Ts;
+xEst[0] = xEst[0] + vDes * Ts *cos(xEst[2]+omegaDes*Ts/2);//推定状態(一つ前のxEstから現在のロボットの状態xEstを推定)
+xEst[1] = xEst[1] + vDes * Ts *sin(xEst[2]+omegaDes*Ts/2);
+xEst[2] = xEst[2] + omegaDes * Ts;
 
 
 xEST= (cv::Mat_<float>(3,1) <<
@@ -305,7 +305,6 @@ S = Ht * P * Ht.t()+R;//観測残渣の共分散S
 std::cout <<"観測残差の共分散S=\n"<<S<< std::endl;
 
 
-
 K = P * Ht.t() * S.inv();//カルマンゲインの算出
 std::cout <<"カルマンゲインの算出K=\n"<<K<< std::endl;
 
@@ -318,6 +317,9 @@ std::cout <<"予測推定状態の更新xEST=\n"<<xEST<< std::endl;
 P = (I - K * Ht) * P;//誤差共分散Pの更新
 std::cout <<"誤差共分散Pの更新P=\n"<<P<< std::endl;
 
+xEst[0]=xEST.at<float>(0);
+xEst[1]=xEST.at<float>(1);
+xEst[2]=xEST.at<float>(2);
 
 std::cout <<"カルマンゲインK=\n"<<K<< std::endl;
 std::cout <<"推定の状態(更新)xEst=\n"<<xEST<< std::endl;
@@ -341,8 +343,6 @@ cv::circle(img_dst, cv::Point(LM[2], LM[3]), 8, cv::Scalar(255, 0, 255), -1);//�
 
 
 //cv::line(img_dst,cv::Point(xACT.at<float>(0)*5,xACT.at<float>(1)*5),cv::Point(zEst[0]*cos(zEst[1]),zEst[0]*sin(zEst[1])),cv::Scalar(0,0,255), 1, cv::LINE_AA);
-
-
 
 
     cv::namedWindow(win_src, cv::WINDOW_AUTOSIZE);

@@ -88,6 +88,7 @@ float point_prve[50][4][3];//一つ前のカメラ座標
 cv::Mat_<float> Xp = cv::Mat_<float>(4, 1);//外部パラメータ（日高手法)
 cv::Mat_<float> XpPLAS = cv::Mat_<float>::zeros(4, 1);
 float pixel[50][2],depth[100000],depth2[100000],point[50][4],x,y,r2,f,ux,uy;//画像→カメラ座標変換
+int ALLdepthkosuu;
 
 ros::Time ros_begin;//プログラム時間
 ros::WallTime wall_begin = ros::WallTime::now();//プログラム開始時の時間
@@ -107,9 +108,13 @@ struct Camera_Base{
     float z;
 };
 struct Camera_Base camera_base;
-ofstream outputfile1("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/6.0_Depth1.txt");
-ofstream outputfile2("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/6.0_AVEdepth.txt");
-ofstream outputfile3("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/6.0_bunsan.txt");
+//ofstream outputfile3("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/ID27_bunsan.txt");
+//ofstream outputfile1("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/0.5_ID27_Depth1.txt");
+ofstream outputfilex("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/5.0_ID27_cameraX.txt");
+ofstream outputfiley("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/5.0_ID27_cameraY.txt");
+ofstream outputfile2("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/5.0_ID27_AVEdepth.txt");
+ofstream outputfilet("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/5.0_ID27_time.txt");
+ofstream filesamplet("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/5.0_ID27_samplingtime.txt");
 
 
 //コールバック関数
@@ -218,13 +223,18 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
   float MLength[50],MAngle[50];//マーカーまでの距離と角度
   int depth_error[50];//各マーカーごとにDepthが取得不可能なコーナー数をカウント
   int depth_ok[50],ALL_depth_ok=0;//各マーカーごとにDepthが取得可能なコーナー数をカウント
-  float World_point[50][4][3];//各マーカーの世界座標
+  float World_point[50][4][3],MC_point[50][4],depthpt[50];//各マーカーの世界座標
+
+  int depthkosuu=0;
+  float ALLdepth=0,AVEdepth,ALLhensa=0,hensa[100000],bunsan,depth0,depthFT;
+  float ALLdepth2=0,AVEdepth2,ALLhensa2=0,hensa2[100000],bunsan2;
 
   //cv::Mat measurement(2, 1, CV_32F);// カルマンフィルタ(観測)
   cv::Mat measurement(2, 4, CV_32F);
   cv::Mat measurement2(1, 4, CV_32F);// カルマンフィルタ(観測)
   
   kosuu=0;
+  if(kaisu==0){ALLdepthkosuu=0;}
 
   if (markerIds.size() > 0) {
     //マーカー位置を描画
@@ -245,28 +255,48 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 		  cv::circle(imageCopy, cv::Point(MCx[markerIds.at(i)],MCy[markerIds.at(i)]), 3, Scalar(0,255,0),  -1, cv::LINE_AA);//緑点
       cv::aruco::drawAxis(imageCopy,cameraMatrix,distCoeffs,rvecs[i], tvecs[i], 0.1);//マーカーの姿勢描写
       cv::Rodrigues(rvecs[i],rvecs2[i],jacobian[i]);//回転ベクトルから回転行列への変換
+       //画像→カメラ座標変換(コーナすべて変換する)----------------------------------------------------------------------
+      pixel[markerIds.at(i)][0]=MCx[markerIds.at(i)];
+      pixel[markerIds.at(i)][1]=MCy[markerIds.at(i)];
+      std::cout <<"MCx["<<markerIds.at(i)<<"]="<<MCx[markerIds.at(i)]<<",MCy["<<markerIds.at(i)<<"]="<<MCy[markerIds.at(i)]<< std::endl;
+      depthpt[markerIds.at(i)] = depthimage.at<float>(cv::Point(pixel[markerIds.at(i)][0],pixel[markerIds.at(i)][1]));
+      //Depth値を修正
+      depth0=depthpt[markerIds.at(i)]*0.001;
+      depthFT=39.215*depth0*depth0-27.793*depth0-7.7718;
+      depthpt[markerIds.at(i)]=depthpt[markerIds.at(i)]-depthFT;
 
+
+      //Depthが取得できないコーナーを削除する+Depthの外れ値を除く
+      if(depthpt[markerIds.at(i)]>0&&depthpt[markerIds.at(i)]<10000){
+        x = (pixel[markerIds.at(i)][0] - camera_info.K[2]) / camera_info.K[0];//ここで正規化座標もしてる
+        y = (pixel[markerIds.at(i)][1] - camera_info.K[5]) / camera_info.K[4];
+        //camera_info.K[0]=615.337,camera_info.K[2]=324.473,camera_info.K[4]=615.458,camera_info.K[5]=241.696//内部パラメータ
+
+        MC_point[markerIds.at(i)][0] = depthpt[markerIds.at(i)] * x/1000;//メートル表示変換
+        MC_point[markerIds.at(i)][1] = depthpt[markerIds.at(i)] * y/1000;
+        MC_point[markerIds.at(i)][2] = depthpt[markerIds.at(i)]/1000;
+        MC_point[markerIds.at(i)][3] = 1;//データ取得可能なら1
+      }
       
     }
-    int depthkosuu=0;
-    float ALLdepth=0,AVEdepth,ALLhensa=0,hensa[100000],bunsan,depth0,depthFT;
-    float ALLdepth2=0,AVEdepth2,ALLhensa2=0,hensa2[100000],bunsan2;
+
     //マーカーの範囲選択(ID.27)
-    for(int i=MarkerC[11][0][0];i<=MarkerC[11][1][0];i++){
-     for(int j=MarkerC[11][0][1];j<=MarkerC[11][2][1];j++){
+    for(int i=MarkerC[27][0][0];i<=MarkerC[27][1][0];i++){
+     for(int j=MarkerC[27][0][1];j<=MarkerC[27][2][1];j++){
         depth[depthkosuu] = depthimage.at<float>(cv::Point(i,j));//範囲内の全Depthを取得
         //Depthの値を修正
         depth0=depth[depthkosuu]*0.001;
         //depthFT=11.064*depth0*depth0*depth0-21.826*depth0*depth0+56.949*depth0-19.277;
-        depthFT=38.261*depth0*depth0-29.597*depth0+12.571;
+        //depthFT=38.261*depth0*depth0-29.597*depth0+12.571;
         //depthFT=39.215*depth0*depth0-27.793*depth0-7.7718;
         depth2[depthkosuu]=depth[depthkosuu]-depthFT;
 
-        outputfile1<<depth[depthkosuu] <<"\n";
+        //outputfile1<<depth[depthkosuu] <<"\n";
         //outputfile1_2<<depth2[depthkosuu] <<"\n";
         ALLdepth=ALLdepth+depth[depthkosuu] ;
         ALLdepth2=ALLdepth2+depth2[depthkosuu] ;
         depthkosuu=depthkosuu+1;
+        ALLdepthkosuu=ALLdepthkosuu+1;
       }
     }
     AVEdepth=ALLdepth/depthkosuu;
@@ -276,25 +306,36 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     std::cout <<"AVEdepth="<< AVEdepth << std::endl;
     std::cout <<"AVEdepth2="<< AVEdepth2 << std::endl;
     std::cout <<"depthkosuu="<< depthkosuu << std::endl;
+    std::cout <<"ALLdepthkosuu="<< ALLdepthkosuu << std::endl;
 
-    for(int i=0;i<depthkosuu;i++){
-      hensa[i]=depth[i]-AVEdepth;
-      hensa2[i]=depth2[i]-AVEdepth2;
-      ALLhensa=ALLhensa+hensa[i]*hensa[i];
-      ALLhensa2=ALLhensa2+hensa2[i]*hensa2[i];
-    }
-    bunsan=ALLhensa/depthkosuu;
-    bunsan2=ALLhensa2/depthkosuu;
-    std::cout <<"bunsan="<< bunsan << std::endl;
-    std::cout <<"bunsan2="<< bunsan2 << std::endl;
-    outputfile3<<bunsan <<"\n";
+
+    //for(int i=0;i<depthkosuu;i++){
+    //  hensa[i]=depth[i]-AVEdepth;
+    //  hensa2[i]=depth2[i]-AVEdepth2;
+    //  ALLhensa=ALLhensa+hensa[i]*hensa[i];
+    //  ALLhensa2=ALLhensa2+hensa2[i]*hensa2[i];
+    //}
+    //bunsan=ALLhensa/depthkosuu;
+    //bunsan2=ALLhensa2/depthkosuu;
+    //std::cout <<"bunsan="<< bunsan << std::endl;
+    //std::cout <<"bunsan2="<< bunsan2 << std::endl;
+    //outputfile3<<bunsan <<"\n";
     //outputfile3_2<<bunsan2 <<"\n";
 
 
+    std::cout <<"マーカーのカメラ座標x="<< MC_point[27][0] << std::endl;
+    std::cout <<"マーカーのカメラ座標y="<< MC_point[27][1] << std::endl;
+    outputfilex<<MC_point[27][0] <<"\n";
+    outputfiley<<MC_point[27][1] <<"\n";
+    std::cout <<"測定時間t="<< wall_duration<< std::endl;
+    outputfilet<<wall_duration <<"\n";
+    std::cout <<"処理時間smpt="<< wall_systemtime<< std::endl;
+    filesamplet<<wall_systemtime <<"\n";
 
+    
 
     std::cout <<"取得終了-----------------------------------"<< std::endl;
-    outputfile1<<"取得終了-------------------------------------------"<<"\n";
+    //outputfile1<<"取得終了-------------------------------------------"<<"\n";
     
       //outputfile1<<MCx[6]<<"\n";
       //outputfile2<<MCy[6]<<"\n";

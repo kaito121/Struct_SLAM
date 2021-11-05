@@ -288,14 +288,21 @@ include_directories(
 #target_link_libraries(Hough_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #add_executable(Hough_camera src/Hough_camera.cpp)
-#target_link_libraries(Hough_camera ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#src/src/updator.cpp
+#)
+##--------------
 
-#add_executable(Sobel_edge src/Sobel_edge.cpp)
-#target_link_libraries(Sobel_edge ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+## Add cmake target dependencies of the library(ライブラリのcmakeターゲット依存関係の追加)
+## as an example, code may need to be generated before libraries(例として、ライブラリの前にコードを生成する必要がある場合があります)
+## either from message generation or dynamic reconfigure(メッセージ生成または動的再構成のいずれかから)
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-#add_executable(HoughP_camera src/HoughP_camera.cpp)
-#target_link_libraries(HoughP_camera ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+## Declare a C++ executable(C++の実行ファイルを宣言する)
+## With catkin_make all packages are built within a single CMake context(catkin_make では、すべてのパッケージが単一の CMake コンテキストでビルドされます。)
+## The recommended prefix ensures that target names across packages don't collide(推奨プレフィックスにより、パッケージ間のターゲット名が衝突しないようにする)
+# add_executable(${PROJECT_NAME}_node src/Struct_SLAM_node.cpp)
 
+## Rename C++ executable without prefix
 #add_executable(HoughP_Hough_camera src/HoughP_Hough_camera.cpp)
 #target_link_libraries(HoughP_Hough_camera ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
@@ -727,10 +734,10 @@ target_link_libraries(Kal_t1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #target_link_libraries(template1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210602 tuiseki Ver realtime1 http://cvwww.ee.ous.ac.jp/opencv_practice5/#3.1
-#add_executable(tuiseki_camera1 src/OptF/tuiseki_camera1.cpp)
-#add_dependencies(tuiseki_camera1 ${PROJECT_NAME}_gencfg)
-#add_dependencies(tuiseki_camera1 ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(tuiseki_camera1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(tuiseki_camera1 src/OptF/tuiseki_camera1.cpp)
+add_dependencies(tuiseki_camera1 ${PROJECT_NAME}_gencfg)
+add_dependencies(tuiseki_camera1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(tuiseki_camera1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210602 tuiseki Ver realtime1_1 http://cvwww.ee.ous.ac.jp/opencv_practice5/#3.1
 #add_executable(tuiseki_camera1_1 src/OptF/tuiseki_camera1_1.cpp)
@@ -774,10 +781,10 @@ target_link_libraries(Kal_t1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #target_link_libraries(sfm1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210619 template1_matching copy Ver Realtime(ZNCC) 
-#add_executable(template2 src/OptF/template2.cpp)
-#add_dependencies(template2 ${PROJECT_NAME}_gencfg)
-#add_dependencies(template2 ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(template2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(template2 src/OptF/template2.cpp)
+add_dependencies(template2 ${PROJECT_NAME}_gencfg)
+add_dependencies(template2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210622 template2 copy  
 #add_executable(template3 src/OptF/template3.cpp)
@@ -840,10 +847,10 @@ target_link_libraries(Kal_t1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #target_link_libraries(Kal_t4_template ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210708 Kal_t4_template copy Ver_Algorithm narabikae
-#add_executable(Kal_t4_template2 src/OptF/Kal_t4_template2.cpp)
-#add_dependencies(Kal_t4_template2 ${PROJECT_NAME}_gencfg)
-#add_dependencies(Kal_t4_template2 ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(Kal_t4_template2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(Kal_t4_template2 src/OptF/Kal_t4_template2.cpp)
+add_dependencies(Kal_t4_template2 ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t4_template2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t4_template2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210707 Kal_t3_template2 copy Ver_kahennsuu_taiou
 #add_executable(Kal_t3_template3 src/OptF/Kal_t3_template3.cpp)
@@ -852,10 +859,10 @@ target_link_libraries(Kal_t1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #target_link_libraries(Kal_t3_template3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210709 Kal_t4_template2 copy Ver_Error_repair
-#add_executable(Kal_t5_template src/OptF/Kal_t5_template.cpp)
-#add_dependencies(Kal_t5_template ${PROJECT_NAME}_gencfg)
-#add_dependencies(Kal_t5_template ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(Kal_t5_template ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(Kal_t5_template src/OptF/Kal_t5_template.cpp)
+add_dependencies(Kal_t5_template ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_t5_template ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_t5_template ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210712 20210524_FLD_depth2 copy Ver + Kal_t4_template2
 #add_executable(20210712_FLD src/FLD/20210712_FLD.cpp)
@@ -935,10 +942,10 @@ target_link_libraries(KF_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #target_link_libraries(${PROJECT_NAME}_cc ${catkin_LIBRARIES}) # classification
 
 #20210726 Vpoint_1 copy Ver clustering(depth_pcl4_20201127 sannkou) 
-#add_executable(Vpoint_1_clustering src/L2_sp3/Vpoint_1_clustering.cpp)
-#add_dependencies(Vpoint_1_clustering  ${PROJECT_NAME}_gencfg)
-#add_dependencies(Vpoint_1_clustering  ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(Vpoint_1_clustering  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(Vpoint_1_clustering src/L2_sp3/Vpoint_1_clustering.cpp)
+add_dependencies(Vpoint_1_clustering  ${PROJECT_NAME}_gencfg)
+add_dependencies(Vpoint_1_clustering  ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Vpoint_1_clustering  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210726 20210712_FLD copy Ver clustering
 #add_executable(FLD_clustering src/FLD/FLD_clustering.cpp)
@@ -1043,16 +1050,16 @@ target_link_libraries(lines_prm_ORB6 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #target_link_libraries(marker1_make ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210803 sample 
-#add_executable(robot_tf_broadcast src/tf/robot_tf_broadcast.cpp)
-#add_dependencies(robot_tf_broadcast ${PROJECT_NAME}_gencfg)
-#add_dependencies(robot_tf_broadcast ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(robot_tf_broadcast ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(robot_tf_broadcast src/tf/robot_tf_broadcast.cpp)
+add_dependencies(robot_tf_broadcast ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_tf_broadcast ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_tf_broadcast ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210803 sample 
-#add_executable(robot_tf_listen src/tf/robot_tf_listen.cpp)
-#add_dependencies(robot_tf_listen ${PROJECT_NAME}_gencfg)
-#add_dependencies(robot_tf_listen ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(robot_tf_listen ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(robot_tf_listen src/tf/robot_tf_listen.cpp)
+add_dependencies(robot_tf_listen ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_tf_listen ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_tf_listen ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20210803 sample 
 #add_executable(robot_tf_listen_broad src/tf/robot_tf_listen_broad.cpp)
@@ -1283,7 +1290,7 @@ add_dependencies(EKF_test_marker2_5 ${PROJECT_NAME}_gencfg)
 add_dependencies(EKF_test_marker2_5 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(EKF_test_marker2_5 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
-#20210922 EKF_test_marker2_5　EKFを使用せずに観測データのみで運動パラメータ推定を行う
+#20210922 EKF_test_marker2_5　EKFを使用せずに観測データのみで運動パラメータ推定を行う(外部パラメータを使用した自己位置推定)
 add_executable(NO_EKF_test_marker2_5 src/EKF/NO_EKF_test_marker2_5.cpp)
 add_dependencies(NO_EKF_test_marker2_5 ${PROJECT_NAME}_gencfg)
 add_dependencies(NO_EKF_test_marker2_5 ${PROJECT_NAME}_generate_messages_cpp)
@@ -1300,3 +1307,339 @@ add_executable(marker_depth_bunsan2 src/marker/marker_depth_bunsan2.cpp)
 add_dependencies(marker_depth_bunsan2 ${PROJECT_NAME}_gencfg)
 add_dependencies(marker_depth_bunsan2 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(marker_depth_bunsan2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210922 NO_EKF_test_marker2_5のマーカー世界座標を利用した自己位置推定(まだできていない)
+add_executable(NO_EKF_test_marker2_6 src/EKF/NO_EKF_test_marker2_6.cpp)
+add_dependencies(NO_EKF_test_marker2_6 ${PROJECT_NAME}_gencfg)
+add_dependencies(NO_EKF_test_marker2_6 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(NO_EKF_test_marker2_6 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210929 特徴点追跡を２回行う外パラ自己位置推定＋マーカー追跡（EKFなし)
+add_executable(point_test_marker src/Vpoint/point_test_marker.cpp)
+add_dependencies(point_test_marker ${PROJECT_NAME}_gencfg)
+add_dependencies(point_test_marker ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(point_test_marker ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210929 特徴点追跡を２回行う外パラ自己位置推定
+add_executable(point_test_NOmarker src/Vpoint/point_test_NOmarker.cpp)
+add_dependencies(point_test_NOmarker ${PROJECT_NAME}_gencfg)
+add_dependencies(point_test_NOmarker ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(point_test_NOmarker ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20210929 tfテスト roslaunch struct_slam start_demo.launch 
+add_executable(turtle_tf_broadcaster src/tf/turtle_tf_broadcaster.cpp)
+target_link_libraries(turtle_tf_broadcaster ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#20210929 tfテスト:http://wiki.ros.org/ja/tf/Tutorials/Writing%20a%20tf%20listener%20%28C%2B%2B%29
+add_executable(turtle_tf_listener src/tf/turtle_tf_listener.cpp)
+target_link_libraries(turtle_tf_listener ${catkin_LIBRARIES})
+#20210929 tfテスト:http://wiki.ros.org/ja/tf/Tutorials/Adding%20a%20frame%20%28C%2B%2B%29
+add_executable(frame_tf_broadcaster src/tf/frame_tf_broadcaster.cpp)
+target_link_libraries(frame_tf_broadcaster ${catkin_LIBRARIES})
+
+
+
+#20211005 特徴点追跡中に特徴点検出を行い自己位置推定
+add_executable(point_test_NOmarker2 src/Vpoint/point_test_NOmarker2.cpp)
+add_dependencies(point_test_NOmarker2 ${PROJECT_NAME}_gencfg)
+add_dependencies(point_test_NOmarker2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(point_test_NOmarker2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211005 特徴点追跡中に特徴点検出を行い自己位置推定(オプティカルフローのpoint位置違い)
+add_executable(point_test_NOmarker3 src/Vpoint/point_test_NOmarker3.cpp)
+add_dependencies(point_test_NOmarker3 ${PROJECT_NAME}_gencfg)
+add_dependencies(point_test_NOmarker3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(point_test_NOmarker3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211005 ORB特徴点検出+追跡テスト(記述子テスト)
+add_executable(ORB_point_test src/test/ORB_point_test.cpp)
+add_dependencies(ORB_point_test ${PROJECT_NAME}_gencfg)
+add_dependencies(ORB_point_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(ORB_point_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211006 テンプレートマッチング(差分二乗和)(これでマッチングの認識が可能)
+add_executable(template_test src/test/template_test.cpp)
+add_dependencies(template_test ${PROJECT_NAME}_gencfg)
+add_dependencies(template_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211006 テンプレートマッチング(複数)+特徴点
+add_executable(template_point_test src/test/template_point_test.cpp)
+add_dependencies(template_point_test ${PROJECT_NAME}_gencfg)
+add_dependencies(template_point_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_point_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211006 テンプレートマッチング(複数)+特徴点の高速化
+add_executable(template_point_test3 src/test/template_point_test3.cpp)
+add_dependencies(template_point_test3 ${PROJECT_NAME}_gencfg)
+add_dependencies(template_point_test3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_point_test3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211006 FLD_clustering_5の構造線を代表線にまとめる
+add_executable(FLD_clustering_6 src/FLD/FLD_clustering_6.cpp)
+add_dependencies(FLD_clustering_6 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering_6 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering_6 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211008 FLD_clustering_6の線中点をテンプレートとしたテンプレートマッチングを行う
+add_executable(FLD_clustering_6_1 src/FLD/FLD_clustering_6_1.cpp)
+add_dependencies(FLD_clustering_6_1 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering_6_1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering_6_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211005 ORB特徴点検出で運動パラメータ推定
+add_executable(ORB_point_test1 src/test/ORB_point_test1.cpp)
+add_dependencies(ORB_point_test1 ${PROJECT_NAME}_gencfg)
+add_dependencies(ORB_point_test1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(ORB_point_test1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211011 テンプレートマッチング高速化(うまくできない。多分残差逐次検定法と画像ピラミッドを使ってる)
+add_executable(Hi_speed_template_matching src/test/Hi_speed_template_matching.cpp)
+add_dependencies(Hi_speed_template_matching ${PROJECT_NAME}_gencfg)
+add_dependencies(Hi_speed_template_matching ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Hi_speed_template_matching ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211008 FLD_clustering_6_1の続き(線追跡法)
+add_executable(FLD_clustering_6_2 src/FLD/FLD_clustering_6_2.cpp)
+add_dependencies(FLD_clustering_6_2 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering_6_2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering_6_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211010 FLD_clustering_6_1のテンプレマッチ高速化(画像クロップ法)
+add_executable(FLD_clustering_6_1_2 src/FLD/FLD_clustering_6_1_2.cpp)
+add_dependencies(FLD_clustering_6_1_2 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering_6_1_2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering_6_1_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211012 FLD_clustering_6_1のテンプレマッチ高速化(画像クロップ法)
+add_executable(Kal_point src/test/Kal_point.cpp)
+add_dependencies(Kal_point ${PROJECT_NAME}_gencfg)
+add_dependencies(Kal_point ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Kal_point ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211008 FLD_clustering_6_2の続き(線追跡法)
+add_executable(FLD_clustering_6_2_1 src/FLD/FLD_clustering_6_2_1.cpp)
+add_dependencies(FLD_clustering_6_2_1 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering_6_2_1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering_6_2_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211012 特徴点追加＋マーカー追跡（EKFなし)
+add_executable(point_test_marker2 src/Vpoint/point_test_marker2.cpp)
+add_dependencies(point_test_marker2 ${PROJECT_NAME}_gencfg)
+add_dependencies(point_test_marker2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(point_test_marker2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211012 特徴点追加＋マーカー追跡（EKF有り)
+add_executable(EKF_point_test_marker2 src/EKF/EKF_point_test_marker2.cpp)
+add_dependencies(EKF_point_test_marker2 ${PROJECT_NAME}_gencfg)
+add_dependencies(EKF_point_test_marker2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(EKF_point_test_marker2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211012 特徴点追加（特徴点のEKF)
+add_executable(EKF_point_test1 src/EKF/EKF_point_test1.cpp)
+add_dependencies(EKF_point_test1 ${PROJECT_NAME}_gencfg)
+add_dependencies(EKF_point_test1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(EKF_point_test1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211013 マーカーの真値を利用した外部パラメータ推定(EKFなし)
+add_executable(marker_pose1 src/Vpoint/marker_pose1.cpp)
+add_dependencies(marker_pose1 ${PROJECT_NAME}_gencfg)
+add_dependencies(marker_pose1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marker_pose1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211013 点群クラスタリングテスト
+add_executable(clustring_test src/test/clustring_test.cpp)
+add_dependencies(clustring_test ${PROJECT_NAME}_gencfg)
+add_dependencies(clustring_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(clustring_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211013 点群クラスタリングテスト
+add_executable(EKF_marker_4_test src/test/EKF_marker_4_test.cpp)
+add_dependencies(EKF_marker_4_test ${PROJECT_NAME}_gencfg)
+add_dependencies(EKF_marker_4_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(EKF_marker_4_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211014 線を無理やりオプティカルフローでトラッキングする
+add_executable(FLD_clustering_7 src/FLD/FLD_clustering_7.cpp)
+add_dependencies(FLD_clustering_7 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering_7 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering_7 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211015 ロボットのトピックを確認し取得する+ロボットの状態方程式
+add_executable(robot_test1 src/robot/robot_test1.cpp)
+add_dependencies(robot_test1 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_test1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_test1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211015 robot_test1にEKFを導入
+add_executable(robot_test2 src/robot/robot_test2.cpp)
+add_dependencies(robot_test2 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_test2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_test2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211018 ロボットに指令を与えるプログラム(ver0)
+add_executable(robot_teleop_test0 src/robot/robot_teleop_test0.cpp)
+add_dependencies(robot_teleop_test0 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_teleop_test0 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_teleop_test0 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211018 ロボットを指令値1m動かすプログラム(調整済み)
+add_executable(robot_teleop_test src/robot/robot_teleop_test.cpp)
+add_dependencies(robot_teleop_test ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_teleop_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_teleop_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211019 センサー情報を取得するプログラム(観測情報に使用)
+add_executable(robot_sensor1 src/robot/robot_sensor1.cpp)
+add_dependencies(robot_sensor1 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_sensor1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_sensor1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211019 センサー情報を同期させるプログラム(message_filtersr利用)(1よりこっちのほうが遅い...)
+add_executable(robot_sensor2 src/robot/robot_sensor2.cpp)
+add_dependencies(robot_sensor2 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_sensor2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_sensor2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211019 カルマンフィルタ実装(message_filtersr利用)
+add_executable(robot_test3 src/robot/robot_test3.cpp)
+add_dependencies(robot_test3 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_test3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_test3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211021 robot_test3に特徴点を追加
+add_executable(robot_test4 src/robot/robot_test4.cpp)
+add_dependencies(robot_test4 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_test4 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_test4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211021 ORB追跡テスト
+add_executable(ORB_tracking_test src/test/ORB_tracking_test.cpp)
+add_dependencies(ORB_tracking_test ${PROJECT_NAME}_gencfg)
+add_dependencies(ORB_tracking_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(ORB_tracking_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211023 特徴点世界座標判別要素の導入
+add_executable(robot_test5 src/robot/robot_test5.cpp)
+add_dependencies(robot_test5 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_test5 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_test5 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211023 特徴点世界座標判別要素の導入
+add_executable(robot_test6 src/robot/robot_test6.cpp)
+add_dependencies(robot_test6 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_test6 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_test6 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211024 オドメトリーを利用して特徴点の運動復元
+add_executable(robot_opt_test src/robot/robot_opt_test.cpp)
+add_dependencies(robot_opt_test ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211025 オドメトリーを利用してマッチングの範囲予測
+add_executable(robot_opt_test2 src/robot/robot_opt_test2.cpp)
+add_dependencies(robot_opt_test2 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211026 テンプレートの保存テスト(時間別3枚の画像を保存してテンプレート確保するテスト)
+add_executable(template_point_test0 src/test/template_point_test0.cpp)
+add_dependencies(template_point_test0 ${PROJECT_NAME}_gencfg)
+add_dependencies(template_point_test0 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_point_test0 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211026 テンプレートの保存テスト(マッチング数が少なくなったら画像を保存してテンプレート確保するテスト)
+add_executable(template_point_test0_1 src/test/template_point_test0_1.cpp)
+add_dependencies(template_point_test0_1 ${PROJECT_NAME}_gencfg)
+add_dependencies(template_point_test0_1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_point_test0_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211026 オドメトリーを利用してマッチングの範囲予測2(2回目までの動作)
+add_executable(robot_opt_test3 src/robot/robot_opt_test3.cpp)
+add_dependencies(robot_opt_test3 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test3 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211027 3回目以降の動作導入
+add_executable(robot_opt_test4 src/robot/robot_opt_test4.cpp)
+add_dependencies(robot_opt_test4 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test4 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211028 予測範囲を中心に移動
+add_executable(robot_opt_test5 src/robot/robot_opt_test5.cpp)
+add_dependencies(robot_opt_test5 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test5 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test5 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211026 テンプレートの保存テスト(分割テンプレートマッチングのテスト)
+add_executable(template_point_test_bunkatu src/test/template_point_test_bunkatu.cpp)
+add_dependencies(template_point_test_bunkatu ${PROJECT_NAME}_gencfg)
+add_dependencies(template_point_test_bunkatu ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_point_test_bunkatu ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211102 分割テンプレートマッチングのテスト(探査範囲変更)
+add_executable(template_point_test_bunkatu2 src/test/template_point_test_bunkatu2.cpp)
+add_dependencies(template_point_test_bunkatu2 ${PROJECT_NAME}_gencfg)
+add_dependencies(template_point_test_bunkatu2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_point_test_bunkatu2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211102 分割テンプレートマッチングのテスト(静止画)
+add_executable(template_point_test_bunkatu2_0 src/test/template_point_test_bunkatu2_0.cpp)
+add_dependencies(template_point_test_bunkatu2_0 ${PROJECT_NAME}_gencfg)
+add_dependencies(template_point_test_bunkatu2_0 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_point_test_bunkatu2_0 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211029 マッチング方法を差分二乗和から正規化相互相関に変更
+add_executable(robot_opt_test6 src/robot/robot_opt_test6.cpp)
+add_dependencies(robot_opt_test6 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test6 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test6 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211029 img_template1をMP_prev_Tempに変更
+add_executable(robot_opt_test6_1 src/robot/robot_opt_test6_1.cpp)
+add_dependencies(robot_opt_test6_1 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test6_1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test6_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211029 テンプレート消去アルゴリズムの導入とZNCCへの変更
+add_executable(robot_opt_test7 src/robot/robot_opt_test7.cpp)
+add_dependencies(robot_opt_test7 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test7 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test7 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211101 エッジ画像でのテンプレートマッチングテスト
+add_executable(template_point_edge src/test/template_point_edge.cpp)
+add_dependencies(template_point_edge ${PROJECT_NAME}_gencfg)
+add_dependencies(template_point_edge ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_point_edge ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211102 世界座標移植アルゴリズムの導入
+add_executable(robot_opt_test8 src/robot/robot_opt_test8.cpp)
+add_dependencies(robot_opt_test8 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test8 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test8 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211102 カルマンフィルタの自己位置推定テスト
+add_executable(robot_opt_test9 src/robot/robot_opt_test9.cpp)
+add_dependencies(robot_opt_test9 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test9 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test9 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211105 マーカー未観測時の世界座標推定を導入
+add_executable(robot_opt_test10 src/robot/robot_opt_test10.cpp)
+add_dependencies(robot_opt_test10 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test10 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test10 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#Realsenseテストプログラム
+add_executable(D435_test0 src/test/D435_test0.cpp)
+add_dependencies(D435_test0 ${PROJECT_NAME}_gencfg)
+add_dependencies(D435_test0 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(D435_test0 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211105 マーカーのみで自己位置推定(世界座標未知マーカー使用)
+add_executable(robot_test_marker src/robot/robot_test_marker.cpp)
+add_dependencies(robot_test_marker ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_test_marker ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_test_marker ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

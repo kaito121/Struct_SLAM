@@ -6,6 +6,24 @@
 //そこで今はWalltimeで代用するが、ここで問題が発生する可能性があるので今後修繕が必要
 //https://8ttyan.hatenablog.com/entry/2015/02/03/003428
 //20210921 ロボットビジョンの手法と日高先生の手法を組み合わせたバージョン
+//メモ20210914
+//カルマンフィルタの構築を行なっている。とりあえず初回動作分の構築は書いた（結果は見ていない）
+//次に行うこととして、推定した値を再び予測ステップに戻して再度推定を行う必要がある。
+//これにあたりいくつかわからないことがある
+//１つはカルマン推定後の動作について
+//カルマンで推定した後推定した値を使って外部パラメータを求めるが、カルマン中にもカメラは動作しているのでおかしくならないのか？
+//これについては多分カルマン推定中に観測データを入れているので、そこで動作の更新が起こるからおかしくならないかも？
+//ふたつ目はどうやってカルマン初回かどうかを分けるか
+//またマーカーが観測されなかった時はそのマーカーのカルマン推定は行わないので、観測に応じてカルマンの推定も変えないと行けない
+//つまり推定した値と観測の値で再び追跡可能かどうかを検出し、追跡可能だった場合はカルマンを行う
+//追跡が行えなかった場合はカルマン推定はしない
+
+//また今現在追跡できるかどうかを見てるが新規のマーカーが現れた時はどういう動作をするかをもう一度分析する必要がある
+//新規マーカーが現れた時の動きは、新規マーカーが確認された時はカルマン推定などは行わず座標のみ保存
+//そして次の動作時に観測され、そのマーカーが追跡可能ならばカルマン推定を行う
+
+//ちなみに一度追跡が不可能になったらそのマーカーの推定結果は削除する
+
 #define _CRT_SECURE_NO_WARNINGS
 #include <ros/ros.h>
 #include <iostream>
@@ -48,6 +66,7 @@ std::string win_depth = "win_depth";
 
 std::string source_frame = "map";//mapフレーム
 ros::Subscriber marker_sub;
+ros::Publisher pub_plan;//カメラ経路送信用
 
 using namespace std;
 using namespace cv;
@@ -65,7 +84,10 @@ vector<cv::Point3f> camera_point_p,camera_point_c;//特徴点定義
 float depth_point_prev[300],camera_point_prev[300][3],depth_point_curr[300],camera_point_curr[300][3];
 cv::Mat_<float> F_Xp = cv::Mat_<float>(4, 1);//外部パラメータ（日高手法 特徴点)
 cv::Mat_<float> F_XpPLAS = cv::Mat_<float>::zeros(4, 1);
-cv::Mat_<float>PT_At0,PT_Et0,PT_Tt;
+cv::Mat_<float>PT_At0,PT_Et0;
+cv::Mat_<float> PT_Vt;//外部パラメータ並進ベクトル(特徴点)
+cv::Mat_<float> PT_Ft;//外部パラメータ回転行列(特徴点)
+cv::Mat_<float> PT_Tt=cv::Mat_<float>(6, 1);//教科書運動パラメータ(特徴点のみで推定)
 
 sensor_msgs::CameraInfo camera_info;//CameraInfo受け取り用
 static struct_slam::marker_tf marker_tf;//観測マーカーのメッセージ
@@ -118,7 +140,19 @@ ofstream outputfile0("/home/fuji/catkin_ws/src/Struct_SLAM/src/EKF/marker_4_ALL_
 //ofstream outputfile6("/home/fuji/catkin_ws/src/Struct_SLAM/src/EKF/xEst[6].txt");//出力ファイルパス
 //ofstream outputfile11("/home/fuji/catkin_ws/src/Struct_SLAM/src/EKF/xEst[11].txt");//出力ファイルパス
 //ofstream outputfile27("/home/fuji/catkin_ws/src/Struct_SLAM/src/EKF/xEst[27].txt");//出力ファイルパス
+ofstream outputfileTF("/home/fuji/catkin_ws/src/Struct_SLAM/src/EKF/EKF_TF/TFposition.txt");//出力ファイルパス
+ofstream outputfileALL_Vt("/home/fuji/catkin_ws/src/Struct_SLAM/src/EKF/EKF_TF/TF_ALL_Vt.txt");//出力ファイルパス
 
+struct Camera_Base{
+    float x;
+    float y;
+    float z;
+};
+struct Camera_Base camera_base;
+geometry_msgs::Pose camera_base_pose;
+
+nav_msgs::Path path;//カメラ経路表示設定
+geometry_msgs::PoseStamped pose;
 
 
 //コールバック関数
@@ -321,15 +355,13 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
     //最小二乗法を用いた外部パラメータの算出(日高手法 特徴点)-----------------------------------------------------------------------------
     for(int i=0;i<depth_point_curr_ok;i++){
-      //F_Pt(kosuu,0)=camera_point_c[i].x;//マーカーのカメラ座標(観測)
-      //F_Pt(kosuu+1,0)=camera_point_c[i].z;
+      PT_At0(PT_kosuu,0)=-1,  PT_At0(PT_kosuu,1)=0,   PT_At0(PT_kosuu,2)=0,   PT_At0(PT_kosuu,3)=0,   PT_At0(PT_kosuu,4)=-camera_point_p[i].z,    PT_At0(PT_kosuu,5)=0;
+      PT_At0(PT_kosuu+1,0)=0, PT_At0(PT_kosuu+1,1)=-1,PT_At0(PT_kosuu+1,2)=0, PT_At0(PT_kosuu+1,3)=0, PT_At0(PT_kosuu+1,4)=0,                     PT_At0(PT_kosuu+1,5)=0;
+      PT_At0(PT_kosuu+2,0)=0, PT_At0(PT_kosuu+2,1)=0, PT_At0(PT_kosuu+2,2)=-1,PT_At0(PT_kosuu+2,3)=0, PT_At0(PT_kosuu+2,4)=camera_point_p[i].x,   PT_At0(PT_kosuu+2,5)=0;
 
-      //F_Ot_1(kosuu,0)=camera_point_p[i].x,F_Ot_1(kosuu,1)=camera_point_p[i].z,F_Ot_1(kosuu,2)=1,F_Ot_1(kosuu,3)=0;
-      //F_Ot_1(kosuu+1,0)=camera_point_p[i].z,F_Ot_1(kosuu+1,1)=-camera_point_p[i].x,F_Ot_1(kosuu+1,2)=0,F_Ot_1(kosuu+1,3)=1;
-
-      PT_At0(PT_kosuu,0)=-1,  PT_At0(PT_kosuu,1)=0,   PT_At0(PT_kosuu,2)=0,   PT_At0(PT_kosuu,3)=0,                       PT_At0(PT_kosuu,4)=-camera_point_p[i].z,  PT_At0(PT_kosuu,5)=-camera_point_p[i].y;
-      PT_At0(PT_kosuu+1,0)=0, PT_At0(PT_kosuu+1,1)=-1,PT_At0(PT_kosuu+1,2)=0, PT_At0(PT_kosuu+1,3)=camera_point_p[i].z, PT_At0(PT_kosuu+1,4)=0,                     PT_At0(PT_kosuu+1,5)=-camera_point_p[i].x;
-      PT_At0(PT_kosuu+2,0)=0, PT_At0(PT_kosuu+2,1)=0, PT_At0(PT_kosuu+2,2)=-1,PT_At0(PT_kosuu+2,3)=-camera_point_p[i].y,PT_At0(PT_kosuu+2,4)=camera_point_p[i].x, PT_At0(PT_kosuu+2,5)=0;
+      //PT_At0(PT_kosuu,0)=-1,  PT_At0(PT_kosuu,1)=0,   PT_At0(PT_kosuu,2)=0,   PT_At0(PT_kosuu,3)=0,                       PT_At0(PT_kosuu,4)=-camera_point_p[i].z,  PT_At0(PT_kosuu,5)=-camera_point_p[i].y;
+      //PT_At0(PT_kosuu+1,0)=0, PT_At0(PT_kosuu+1,1)=-1,PT_At0(PT_kosuu+1,2)=0, PT_At0(PT_kosuu+1,3)=camera_point_p[i].z, PT_At0(PT_kosuu+1,4)=0,                     PT_At0(PT_kosuu+1,5)=-camera_point_p[i].x;
+      //PT_At0(PT_kosuu+2,0)=0, PT_At0(PT_kosuu+2,1)=0, PT_At0(PT_kosuu+2,2)=-1,PT_At0(PT_kosuu+2,3)=-camera_point_p[i].y,PT_At0(PT_kosuu+2,4)=camera_point_p[i].x, PT_At0(PT_kosuu+2,5)=0;
 
       PT_Et0(PT_kosuu,0)=camera_point_c[i].x-camera_point_p[i].x;
       PT_Et0(PT_kosuu+1,0)=camera_point_c[i].y-camera_point_p[i].y;
@@ -338,22 +370,31 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       PT_kosuu=PT_kosuu+3;
     }
           
-    //std::cout <<"特徴点F_Pt=\n"<<F_Pt<< std::endl;
-    //std::cout <<"特徴点F_Ot_1=\n"<<F_Ot_1<< std::endl;
-      
-    //cv::Mat_<float> F_Ot_1T = cv::Mat_<float>(4, 4);
-    //F_Ot_1T=F_Ot_1.t()*F_Ot_1;
-    //F_Xp=F_Ot_1T.inv(cv::DECOMP_SVD)*F_Ot_1.t()*F_Pt;
-    ////std::cout <<"F_Ot_1T=\n"<<F_Ot_1T<< std::endl;
-    //std::cout <<"F_Xp=\n"<<F_Xp<< std::endl;
-    //F_XpPLAS=F_XpPLAS+F_Xp;
-    //std::cout <<"F_XpPLAS=\n"<<F_XpPLAS<< std::endl;
 
-    std::cout <<"PT_At0=\n"<<PT_At0<< std::endl;
-    std::cout <<"PT_Et0=\n"<<PT_Et0<< std::endl;
+    //std::cout <<"PT_At0=\n"<<PT_At0<< std::endl;
+    //std::cout <<"PT_Et0=\n"<<PT_Et0<< std::endl;
     //すべてのマーカー座標を利用して最小二乗法外部パラメータ推定(初回)
     PT_Tt=PT_At0.inv(cv::DECOMP_SVD)*PT_Et0;
     std::cout <<"PT_Tt=\n"<<PT_Tt<< std::endl;//推定外部パラメータ
+
+     //std::cout <<"PT_Tt=\n"<<PT_Tt<< std::endl;//推定外部パラメータ
+    PT_Ft = cv::Mat_<float>(3, 3);//回転行列(日高手法)
+    PT_Ft(0,0)=1,            PT_Ft(0,1)=PT_Tt(5,0),   PT_Ft(0,2)=-PT_Tt(4,0);
+    PT_Ft(1,0)=-PT_Tt(5,0),  PT_Ft(1,1)=1,             PT_Ft(1,2)=PT_Tt(3,0),
+    PT_Ft(2,0)=PT_Tt(4,0),   PT_Ft(2,1)=PT_Tt(3,0),    PT_Ft(2,2)=1;
+
+    //PT_Ft(0,0)=1,        PT_Ft(0,1)=0,        PT_Ft(0,2)=-PT_Tt(4,0);
+    //PT_Ft(1,0)=0,        PT_Ft(1,1)=1,        PT_Ft(1,2)=0,
+    //PT_Ft(2,0)=PT_Tt(4,0),  PT_Ft(2,1)=0,        PT_Ft(2,2)=1;
+    //std::cout <<"回転行列(日高手法)PT_Ft=\n"<<PT_Ft<< std::endl;//回転行列
+
+    PT_Vt = cv::Mat_<float>(4, 1);//並進ベクトル+y軸回転(日高手法)
+    PT_Vt(0,0)=PT_Tt(0,0);//Vx
+    PT_Vt(1,0)=PT_Tt(1,0);//Vy
+    PT_Vt(2,0)=PT_Tt(2,0);//Vz
+    PT_Vt(3,0)=PT_Tt(4,0);//Ωy
+    //std::cout <<"並進ベクトル+y軸回転(日高手法)PT_Vt=\n"<<PT_Vt<< std::endl;//並進ベクトル
+    
     
   }
 
@@ -432,7 +473,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       cv::aruco::drawAxis(imageCopy,cameraMatrix,distCoeffs,rvecs[i], tvecs[i], 0.1);//マーカーの姿勢描写
       cv::Rodrigues(rvecs[i],rvecs2[i],jacobian[i]);//回転ベクトルから回転行列への変換
 
-      //画像→カメラ座標変換(コーナすべて変換する)----------------------------------------------------------------------
+      //画像→カメラ座標変換(マーカーの中心座標を使用)----------------------------------------------------------------------
       pixel[markerIds.at(i)][0]=MCx[markerIds.at(i)];
       pixel[markerIds.at(i)][1]=MCy[markerIds.at(i)];
       std::cout <<"MCx["<<markerIds.at(i)<<"]="<<MCx[markerIds.at(i)]<<",MCy["<<markerIds.at(i)<<"]="<<MCy[markerIds.at(i)]<< std::endl;
@@ -453,7 +494,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         MC_point[markerIds.at(i)][1] = depth[markerIds.at(i)] * y/1000;
         MC_point[markerIds.at(i)][2] = depth[markerIds.at(i)]/1000;
         MC_point[markerIds.at(i)][3] = 1;//データ取得可能なら1
-        std::cout << "特徴点のカメラ座標:MC_point["<<markerIds.at(i)<<"]={"<< MC_point[markerIds.at(i)][0] <<","<<MC_point[markerIds.at(i)][1]<<","<<MC_point[markerIds.at(i)][2]<<"}"<< std::endl;
+        std::cout << "マーカーのカメラ座標:MC_point["<<markerIds.at(i)<<"]={"<< MC_point[markerIds.at(i)][0] <<","<<MC_point[markerIds.at(i)][1]<<","<<MC_point[markerIds.at(i)][2]<<"}"<< std::endl;
         //std::cout <<"X="<< MC_point[markerIds.at(i)][0]/MC_point[markerIds.at(i)][2]<< std::endl;
         //std::cout <<"Y="<< MC_point[markerIds.at(i)][1]/MC_point[markerIds.at(i)][2]<< std::endl;
       }
@@ -476,8 +517,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
         for(int i=0;i<ALLMarker;i++){//全マーカー分回す
           if(MC_point[i][3]!=0){//最新要素が無いものを除外
             if(MC_point[i][3]==MC_point_prve[i][3]){//追跡可能かどうか
-            std::cout << "point     ["<<i<<"]={"<< MC_point[i][0] <<","<<MC_point[i][1]<<","<<MC_point[i][2]<<","<<MC_point[i][3]<<"}"<< std::endl;
-            std::cout << "point_prev["<<i<<"]={"<< MC_point_prve[i][0] <<","<<MC_point_prve[i][1]<<","<<MC_point_prve[i][2]<<","<<MC_point_prve[i][3]<<"}"<< std::endl;
+            std::cout << "MC_point     ["<<i<<"]={"<< MC_point[i][0] <<","<<MC_point[i][1]<<","<<MC_point[i][2]<<","<<MC_point[i][3]<<"}"<< std::endl;
+            std::cout << "MC_point_prev["<<i<<"]={"<< MC_point_prve[i][0] <<","<<MC_point_prve[i][1]<<","<<MC_point_prve[i][2]<<","<<MC_point_prve[i][3]<<"}"<< std::endl;
 
             xEst0_prev_cl[i](0,0)=MC_point_prve[i][0];//一つ前に観測したマーカーのカメラ座標（カルマン用)
             xEst0_prev_cl[i](1,0)=MC_point_prve[i][1];
@@ -492,9 +533,15 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
             pixel_cl[i](0,0)=pixel[i][0] - camera_info.K[2];//今観測したマーカーの正規化画像座標(カルマン用)
             pixel_cl[i](1,0)=pixel[i][1] - camera_info.K[5];
 
-            At0(kosuu,0)=-1,  At0(kosuu,1)=0,   At0(kosuu,2)=0,   At0(kosuu,3)=0,                       At0(kosuu,4)=-xEst0_prev_cl[i](2,0),  At0(kosuu,5)=-xEst0_prev_cl[i](1,0);
-            At0(kosuu+1,0)=0, At0(kosuu+1,1)=-1,At0(kosuu+1,2)=0, At0(kosuu+1,3)=xEst0_prev_cl[i](2,0), At0(kosuu+1,4)=0,                     At0(kosuu+1,5)=-xEst0_prev_cl[i](0,0);
-            At0(kosuu+2,0)=0, At0(kosuu+2,1)=0, At0(kosuu+2,2)=-1,At0(kosuu+2,3)=-xEst0_prev_cl[i](1,0),At0(kosuu+2,4)=xEst0_prev_cl[i](0,0), At0(kosuu+2,5)=0;
+            ////三次元空間上
+            //At0(kosuu,0)=-1,  At0(kosuu,1)=0,   At0(kosuu,2)=0,   At0(kosuu,3)=0,                       At0(kosuu,4)=-xEst0_prev_cl[i](2,0),  At0(kosuu,5)=-xEst0_prev_cl[i](1,0);
+            //At0(kosuu+1,0)=0, At0(kosuu+1,1)=-1,At0(kosuu+1,2)=0, At0(kosuu+1,3)=xEst0_prev_cl[i](2,0), At0(kosuu+1,4)=0,                     At0(kosuu+1,5)=-xEst0_prev_cl[i](0,0);
+            //At0(kosuu+2,0)=0, At0(kosuu+2,1)=0, At0(kosuu+2,2)=-1,At0(kosuu+2,3)=-xEst0_prev_cl[i](1,0),At0(kosuu+2,4)=xEst0_prev_cl[i](0,0), At0(kosuu+2,5)=0;
+
+            //xz平面上を移動する条件下の時
+            At0(kosuu,0)=-1,  At0(kosuu,1)=0,   At0(kosuu,2)=0,   At0(kosuu,3)=0,   At0(kosuu,4)=-xEst0_prev_cl[i](2,0),  At0(kosuu,5)=0;
+            At0(kosuu+1,0)=0, At0(kosuu+1,1)=-1,At0(kosuu+1,2)=0, At0(kosuu+1,3)=0, At0(kosuu+1,4)=0,                     At0(kosuu+1,5)=0;
+            At0(kosuu+2,0)=0, At0(kosuu+2,1)=0, At0(kosuu+2,2)=-1,At0(kosuu+2,3)=0, At0(kosuu+2,4)=xEst0_prev_cl[i](0,0), At0(kosuu+2,5)=0;
 
             Et0(kosuu,0)=xEst0_cl[i](0,0)-xEst0_prev_cl[i](0,0);
             Et0(kosuu+1,0)=xEst0_cl[i](1,0)-xEst0_prev_cl[i](1,0);
@@ -509,6 +556,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
             delta0(kosuu,0)=(xEst0_cl[i](0,0)-xEst0_prev_cl[i](0,0))*(xEst0_cl[i](0,0)-xEst0_prev_cl[i](0,0));
             delta0(kosuu+1,0)=(xEst0_cl[i](1,0)-xEst0_prev_cl[i](1,0))*(xEst0_cl[i](1,0)-xEst0_prev_cl[i](1,0));
             delta0(kosuu+2,0)=(xEst0_cl[i](2,0)-xEst0_prev_cl[i](2,0))*(xEst0_cl[i](2,0)-xEst0_prev_cl[i](2,0));
+            //delta0(kosuu+2,0)=(xEst0_cl[i](2,0)-xEst0_prev_cl[i](2,0))*(xEst0_cl[i](2,0)-xEst0_prev_cl[i](2,0));
 
             kosuu=kosuu+3;
             }
@@ -541,9 +589,16 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
               pixel_cl[i](0,0)=pixel[i][0] - camera_info.K[2];//今観測したマーカーの正規化画像座標
               pixel_cl[i](1,0)=pixel[i][1] - camera_info.K[5];
 
-             At0(kosuu,0)=-1,  At0(kosuu,1)=0,   At0(kosuu,2)=0,   At0(kosuu,3)=0,                       At0(kosuu,4)=-xEst0_prev_cl[i](2,0),  At0(kosuu,5)=-xEst0_prev_cl[i](1,0);
-             At0(kosuu+1,0)=0, At0(kosuu+1,1)=-1,At0(kosuu+1,2)=0, At0(kosuu+1,3)=xEst0_prev_cl[i](2,0), At0(kosuu+1,4)=0,                     At0(kosuu+1,5)=-xEst0_prev_cl[i](0,0);
-             At0(kosuu+2,0)=0, At0(kosuu+2,1)=0, At0(kosuu+2,2)=-1,At0(kosuu+2,3)=-xEst0_prev_cl[i](1,0),At0(kosuu+2,4)=xEst0_prev_cl[i](0,0), At0(kosuu+2,5)=0;
+              ////三次元空間上
+              //At0(kosuu,0)=-1,  At0(kosuu,1)=0,   At0(kosuu,2)=0,   At0(kosuu,3)=0,                       At0(kosuu,4)=-xEst0_prev_cl[i](2,0),  At0(kosuu,5)=-xEst0_prev_cl[i](1,0);
+              //At0(kosuu+1,0)=0, At0(kosuu+1,1)=-1,At0(kosuu+1,2)=0, At0(kosuu+1,3)=xEst0_prev_cl[i](2,0), At0(kosuu+1,4)=0,                     At0(kosuu+1,5)=-xEst0_prev_cl[i](0,0);
+              //At0(kosuu+2,0)=0, At0(kosuu+2,1)=0, At0(kosuu+2,2)=-1,At0(kosuu+2,3)=-xEst0_prev_cl[i](1,0),At0(kosuu+2,4)=xEst0_prev_cl[i](0,0), At0(kosuu+2,5)=0;
+ 
+              //xz平面上を移動する条件下の時
+              At0(kosuu,0)=-1,  At0(kosuu,1)=0,   At0(kosuu,2)=0,   At0(kosuu,3)=0,   At0(kosuu,4)=-xEst0_prev_cl[i](2,0),  At0(kosuu,5)=0;
+              At0(kosuu+1,0)=0, At0(kosuu+1,1)=-1,At0(kosuu+1,2)=0, At0(kosuu+1,3)=0, At0(kosuu+1,4)=0,                     At0(kosuu+1,5)=0;
+              At0(kosuu+2,0)=0, At0(kosuu+2,1)=0, At0(kosuu+2,2)=-1,At0(kosuu+2,3)=0, At0(kosuu+2,4)=xEst0_prev_cl[i](0,0), At0(kosuu+2,5)=0;
+
 
              Et0(kosuu,0)=xEst0_cl[i](0,0)-xEst0_prev_cl[i](0,0);
              Et0(kosuu+1,0)=xEst0_cl[i](1,0)-xEst0_prev_cl[i](1,0);
@@ -605,46 +660,50 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       std::cout <<"Et=\n"<<Et<< std::endl;
       std::cout <<"AWt=\n"<<AWt<< std::endl;
 
-      /*//すべてのマーカー座標を利用して最小二乗法外部パラメータ推定(初回)
-      Tt=At.inv(cv::DECOMP_SVD)*Et;
+      //すべてのマーカー座標を利用して最小二乗法外部パラメータ推定(初回)
+      //Tt=At.inv(cv::DECOMP_SVD)*Et;
       //At_1=At.t()*At;
       //Tt=At_1.inv()*At.t()*Et;
-      std::cout <<"Tt=\n"<<Tt<< std::endl;//推定外部パラメータ
+      //std::cout <<"Tt=\n"<<Tt<< std::endl;//推定外部パラメータ
       
-      Ft = cv::Mat_<float>(3, 3);//回転行列(日高手法)
-      Ft(0,0)=1,        Ft(0,1)=0,        Ft(0,2)=-Tt(4,0);
-      Ft(1,0)=0,        Ft(1,1)=1,        Ft(1,2)=0,
-      Ft(2,0)=Tt(4,0),  Ft(2,1)=0,        Ft(2,2)=1;
-      std::cout <<"回転行列(日高手法)Ft=\n"<<Ft<< std::endl;//回転行列
+      //Ft = cv::Mat_<float>(3, 3);//回転行列(日高手法)
+      //Ft(0,0)=1,        Ft(0,1)=0,        Ft(0,2)=-Tt(4,0);
+      //Ft(1,0)=0,        Ft(1,1)=1,        Ft(1,2)=0,
+      //Ft(2,0)=Tt(4,0),  Ft(2,1)=0,        Ft(2,2)=1;
+      //std::cout <<"回転行列(日高手法)Ft=\n"<<Ft<< std::endl;//回転行列
 
-      Vt = cv::Mat_<float>(4, 1);//並進ベクトル+y軸回転(日高手法)
-      Vt(0,0)=Tt(0,0);//Vx
-      Vt(1,0)=Tt(1,0);//Vy
-      Vt(2,0)=Tt(2,0);//Vz
-      Vt(3,0)=Tt(4,0);//Ωy
-      std::cout <<"並進ベクトル+y軸回転(日高手法)Vt=\n"<<Vt<< std::endl;//並進ベクトル*/
+      //Vt = cv::Mat_<float>(4, 1);//並進ベクトル+y軸回転(日高手法)
+      //Vt(0,0)=Tt(0,0);//Vx
+      //Vt(1,0)=Tt(1,0);//Vy
+      //Vt(2,0)=Tt(2,0);//Vz
+      //Vt(3,0)=Tt(4,0);//Ωy
+      //std::cout <<"並進ベクトル+y軸回転(日高手法)Vt=\n"<<Vt<< std::endl;//並進ベクトル
 
       //マーカー+特徴点を使用した外部パラメータ推定
       cv::Mat_<float>ALL_At=cv::Mat_<float>(kosuu+PT_kosuu, 6);
       cv::Mat_<float>ALL_Et=cv::Mat_<float>(kosuu+PT_kosuu, 1);
       cv::Mat_<float>ALL_Tt=cv::Mat_<float>(6, 1);//教科書運動パラメータ
 
-      At.rowRange(0, kosuu).copyTo(ALL_At.rowRange(0, kosuu));
-	    Et.rowRange(0, kosuu).copyTo(ALL_Et.rowRange(0, kosuu));
-      PT_At0.rowRange(0, PT_kosuu).copyTo(ALL_At.rowRange(kosuu, kosuu+PT_kosuu));
-	    PT_Et0.rowRange(0, PT_kosuu).copyTo(ALL_Et.rowRange(kosuu, kosuu+PT_kosuu));
+      //At.rowRange(0, kosuu).copyTo(ALL_At.rowRange(0, kosuu));
+	    //Et.rowRange(0, kosuu).copyTo(ALL_Et.rowRange(0, kosuu));
+      //PT_At0.rowRange(0, PT_kosuu).copyTo(ALL_At.rowRange(kosuu, kosuu+PT_kosuu));
+	    //PT_Et0.rowRange(0, PT_kosuu).copyTo(ALL_Et.rowRange(kosuu, kosuu+PT_kosuu));
 
       //std::cout <<"ALL_At=\n"<<ALL_At<< std::endl;
       //std::cout <<"ALL_Et=\n"<<ALL_Et<< std::endl;
 
       //すべてのマーカー座標を利用して最小二乗法外部パラメータ推定(初回)
-      ALL_Tt=ALL_At.inv(cv::DECOMP_SVD)*ALL_Et;
+      ALL_Tt=At.inv(cv::DECOMP_SVD)*Et;//(マーカーのみ使用するとき)
+      //ALL_Tt=ALL_At.inv(cv::DECOMP_SVD)*ALL_Et;
       std::cout <<"ALL_Tt=\n"<<ALL_Tt<< std::endl;//推定外部パラメータ
 
       ALL_Ft = cv::Mat_<float>(3, 3);//回転行列(日高手法)
-      ALL_Ft(0,0)=1,        ALL_Ft(0,1)=0,        ALL_Ft(0,2)=-ALL_Tt(4,0);
-      ALL_Ft(1,0)=0,        ALL_Ft(1,1)=1,        ALL_Ft(1,2)=0,
-      ALL_Ft(2,0)=ALL_Tt(4,0),  ALL_Ft(2,1)=0,        ALL_Ft(2,2)=1;
+      ALL_Ft(0,0)=1,             ALL_Ft(0,1)=-ALL_Tt(5,0),  ALL_Ft(0,2)=-ALL_Tt(4,0);
+      ALL_Ft(1,0)=-ALL_Tt(5,0),  ALL_Ft(1,1)=1,             ALL_Ft(1,2)=ALL_Tt(3,0),
+      ALL_Ft(2,0)=ALL_Tt(4,0),   ALL_Ft(2,1)=-ALL_Tt(3,0),  ALL_Ft(2,2)=1;
+      //ALL_Ft(0,0)=1,            ALL_Ft(0,1)=0,        ALL_Ft(0,2)=-ALL_Tt(4,0);
+      //ALL_Ft(1,0)=0,            ALL_Ft(1,1)=1,        ALL_Ft(1,2)=0,
+      //ALL_Ft(2,0)=ALL_Tt(4,0),  ALL_Ft(2,1)=0,        ALL_Ft(2,2)=1;
       std::cout <<"回転行列(日高手法)ALL_Ft=\n"<<ALL_Ft<< std::endl;//回転行列
 
       ALL_Vt = cv::Mat_<float>(4, 1);//並進ベクトル+y軸回転(日高手法)
@@ -667,8 +726,8 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
          St[ALLMarker] = cv::Mat_<float>::zeros(2, 2);//共分散
          Kt_cl[ALLMarker] = cv::Mat_<float>::zeros(3, 2);//カルマンゲイン
          u_ = (cv::Mat_<float>(2, 2) <<
-            0.0001, 0,
-            0, 0.0001);
+            0.083, 0,
+            0, 0.083);
       }
 
       //カルマンフィルタでマーカーの座標修正(座標推定)
@@ -696,9 +755,15 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       cv::Mat_<float>AWt_1=cv::Mat_<float>(kosuu, 4);
       cv::Mat_<float>Wt = cv::Mat_<float>::zeros(4, 4);
 
+      int kosuuNO;
       for(int i=0;i<kosuu;i++){//共分散の対角化
         eye.rowRange(i, i+1).copyTo(eyetemp.rowRange(0, 1));
-        eyetemp=eyetemp*delta(i,0)*0.083;
+        //if(i%3==0){
+        //  if(MC_point[i][2]>3
+        //}
+        if(i%3==0){eyetemp=eyetemp*delta(i,0)*30;}
+        else if(i%3==1){eyetemp=eyetemp*delta(i,0)*30;}
+        else if(i%3==2){eyetemp=eyetemp*delta(i,0)*30;}
         eyetemp.rowRange(0, 1).copyTo(deltaeye.rowRange(i, i+1));
       }
       std::cout <<"deltaeye=\n"<<deltaeye<< std::endl;
@@ -789,25 +854,176 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       //outputfile3<<"                 "<<xEst0_prev_cl[3](2,0)<<"             "<<xEst0_cl[3](2,0)<<"                            "<<Kt_cl[3](2,0)<<","<<Kt_cl[3](2,1)<<"                       "<<Tt(2,0)<<",  "<<Tt(5,0)<<"                           "<<ALL_Tt(2,0)<<",  "<<ALL_Tt(5,0)<<"\n";
 
     }//if(kaisu!=0)→end(初回は動作しない)
+
+  //for(int i=0;i<markerIds.size();i++){
+      //tf(観測マーカー)-------------------------------------------------------------------------------------------------観測マーカー
+      std::string target_maker_frame = "marker_link";//cameraとマーカー間のリンク
+      geometry_msgs::Pose maker_pose;
+
+      std::cout << "tf特徴点のカメラ座標:point[3][0]={x="<< xEst0_prev_cl[3](2,0) <<",y="<<-xEst0_prev_cl[3](0,0)<<",z="<<-xEst0_prev_cl[3](1,0)<<"}"<< std::endl;
+
+      maker_pose.position.x = xEst0_prev_cl[3](2,0);//Rvizと画像は座標系が異なるので注意
+      maker_pose.position.y = -xEst0_prev_cl[3](0,0);
+      maker_pose.position.z = -xEst0_prev_cl[3](1,0)+0.67;
+      maker_pose.orientation.w = 1.0;
+
+      static tf::TransformBroadcaster br_maker;
+      tf::Transform maker_transform;
+      poseMsgToTF(maker_pose, maker_transform);
+      br_maker.sendTransform(tf::StampedTransform(maker_transform, ros::Time::now(), "/camera_link", target_maker_frame));
+      //tf(観測マーカー)-------------------------------------------------------------------------------------------------観測マーカー
+      std::string target_maker_frame1 = "marker_link1";//cameraとマーカー間のリンク
+      geometry_msgs::Pose maker_pose1;
+
+      std::cout << "tf特徴点のカメラ座標:point[6][0]={x="<< xEst0_prev_cl[6](2,0) <<",y="<<-xEst0_prev_cl[6](0,0)<<",z="<<-xEst0_prev_cl[6](1,0)<<"}"<< std::endl;
+
+      maker_pose1.position.x = xEst0_prev_cl[6](2,0);//Rvizと画像は座標系が異なるので注意
+      maker_pose1.position.y = -xEst0_prev_cl[6](0,0);
+      maker_pose1.position.z = -xEst0_prev_cl[6](1,0)+0.67;
+      maker_pose1.orientation.w = 1.0;
+
+      static tf::TransformBroadcaster br_maker1;
+      tf::Transform maker_transform1;
+      poseMsgToTF(maker_pose1, maker_transform1);
+      br_maker1.sendTransform(tf::StampedTransform(maker_transform1, ros::Time::now(), "/camera_link", target_maker_frame1));
+      //tf(観測マーカー)-------------------------------------------------------------------------------------------------観測マーカー
+      std::string target_maker_frame2 = "marker_link2";//cameraとマーカー間のリンク
+      geometry_msgs::Pose maker_pose2;
+
+      std::cout << "tf特徴点のカメラ座標:point[11][0]={x="<< xEst0_prev_cl[11](2,0) <<",y="<<-xEst0_prev_cl[11](0,0)<<",z="<<-xEst0_prev_cl[11](1,0)<<"}"<< std::endl;
+
+      maker_pose2.position.x = xEst0_prev_cl[11](2,0);//Rvizと画像は座標系が異なるので注意
+      maker_pose2.position.y = -xEst0_prev_cl[11](0,0);
+      maker_pose2.position.z = -xEst0_prev_cl[11](1,0)+0.67;
+      maker_pose2.orientation.w = 1.0;
+
+      static tf::TransformBroadcaster br_maker2;
+      tf::Transform maker_transform2;
+      poseMsgToTF(maker_pose2, maker_transform2);
+      br_maker2.sendTransform(tf::StampedTransform(maker_transform2, ros::Time::now(), "/camera_link", target_maker_frame2));
+      //tf(観測マーカー)-------------------------------------------------------------------------------------------------観測マーカー
+      std::string target_maker_frame3 = "marker_link3";//cameraとマーカー間のリンク
+      geometry_msgs::Pose maker_pose3;
+
+      std::cout << "tf特徴点のカメラ座標:point[27][0]={x="<< xEst0_prev_cl[27](2,0) <<",y="<<-xEst0_prev_cl[27](0,0)<<",z="<<-xEst0_prev_cl[27](1,0)<<"}"<< std::endl;
+
+      maker_pose3.position.x = xEst0_prev_cl[27](2,0);//Rvizと画像は座標系が異なるので注意
+      maker_pose3.position.y = -xEst0_prev_cl[27](0,0);
+      maker_pose3.position.z = -xEst0_prev_cl[27](1,0)+0.67;
+      maker_pose3.orientation.w = 1.0;
+
+      static tf::TransformBroadcaster br_maker3;
+      tf::Transform maker_transform3;
+      poseMsgToTF(maker_pose3, maker_transform3);
+      br_maker3.sendTransform(tf::StampedTransform(maker_transform3, ros::Time::now(), "/camera_link", target_maker_frame3));
+
+    //}
   }//if(markerIds.size() > 0)→end(マーカーが観測されなかった時は動作しない)
+if(kaisu!=0){
+ //tf(map camera_base間のlink)-----------------------------------------------------------------------------------------
+//ここがカメラの姿勢部分
 
-  //メモ20210914
-  //カルマンフィルタの構築を行なっている。とりあえず初回動作分の構築は書いた（結果は見ていない）
-  //次に行うこととして、推定した値を再び予測ステップに戻して再度推定を行う必要がある。
-  //これにあたりいくつかわからないことがある
-  //１つはカルマン推定後の動作について
-  //カルマンで推定した後推定した値を使って外部パラメータを求めるが、カルマン中にもカメラは動作しているのでおかしくならないのか？
-  //これについては多分カルマン推定中に観測データを入れているので、そこで動作の更新が起こるからおかしくならないかも？
-  //ふたつ目はどうやってカルマン初回かどうかを分けるか
-  //またマーカーが観測されなかった時はそのマーカーのカルマン推定は行わないので、観測に応じてカルマンの推定も変えないと行けない
-  //つまり推定した値と観測の値で再び追跡可能かどうかを検出し、追跡可能だった場合はカルマンを行う
-  //追跡が行えなかった場合はカルマン推定はしない
+    std::string MaptoCamera_Base_frame = "MaptoCamera_Base_link";
+    //camera_base_pose.position.x = camera_base_pose.position.x-ALL_Tt(5,0)*camera_base_pose.position.y-ALL_Tt(4,0)*camera_base_pose.position.z+ALL_Tt(2,0);
+    //camera_base_pose.position.y = -ALL_Tt(5,0)*camera_base_pose.position.x+camera_base_pose.position.y+ALL_Tt(3,0)*camera_base_pose.position.z+ALL_Tt(0,0);
+    //camera_base_pose.position.z = ALL_Tt(4,0)*camera_base_pose.position.x-ALL_Tt(5,0)*camera_base_pose.position.y+camera_base_pose.position.z+ALL_Tt(1,0);
 
-  //また今現在追跡できるかどうかを見てるが新規のマーカーが現れた時はどういう動作をするかをもう一度分析する必要がある
-  //新規マーカーが現れた時の動きは、新規マーカーが確認された時はカルマン推定などは行わず座標のみ保存
-  //そして次の動作時に観測され、そのマーカーが追跡可能ならばカルマン推定を行う
+    if (markerIds.size() > 0) {//マーカーが認識できる時
+      //オイラー角→クオータニオン変換
+      float cosRoll = cos(ALL_Ft(1,2)/ 2.0);
+      float sinRoll = sin(ALL_Ft(1,2) / 2.0);
+      float cosPitch = cos(ALL_Ft(0,2) / 2.0);
+      float sinPitch = sin(ALL_Ft(0,2) / 2.0);
+      float cosYaw = cos(ALL_Ft(0,1) / 2.0);
+      float sinYaw = sin(ALL_Ft(0,1) / 2.0);
 
-  //ちなみに一度追跡が不可能になったらそのマーカーの推定結果は削除する
+      float q0 = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
+      float q1 = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
+      float q2 = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
+      float q3 = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
+      //カメラ位置
+      camera_base_pose.position.x = camera_base_pose.position.x+ALL_Vt(2,0);//赤(xは進行方向)
+      camera_base_pose.position.y = camera_base_pose.position.y+ALL_Vt(0,0);//緑
+      camera_base_pose.position.z = camera_base_pose.position.z+ALL_Vt(1,0);//青
+      camera_base_pose.orientation.x = camera_base_pose.orientation.x+q0;
+      camera_base_pose.orientation.y = camera_base_pose.orientation.y+q1;
+      camera_base_pose.orientation.z = camera_base_pose.orientation.z+q2;
+      camera_base_pose.orientation.w = camera_base_pose.orientation.w+q3;
+      outputfileALL_Vt<<"X:ALL_Vt(2,0)="<<ALL_Vt(2,0)<<" Y:ALL_Vt(0,0)="<<ALL_Vt(0,0)<<" Z:ALL_Vt(1,0)="<<ALL_Vt(1,0)<<"\n";
+    }
+    else{//マーカーが認識されない時（点群情報のみで自己位置推定を行う
+      //オイラー角→クオータニオン変換
+      float cosRoll = cos(PT_Ft(1,2)/ 2.0);
+      float sinRoll = sin(PT_Ft(1,2) / 2.0);
+      float cosPitch = cos(PT_Ft(0,2) / 2.0);
+      float sinPitch = sin(PT_Ft(0,2) / 2.0);
+      float cosYaw = cos(PT_Ft(0,1) / 2.0);
+      float sinYaw = sin(PT_Ft(0,1) / 2.0);
+
+      float q0 = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
+      float q1 = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
+      float q2 = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
+      float q3 = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
+      //カメラ位置
+      camera_base_pose.position.x = camera_base_pose.position.x+PT_Vt(2,0);//赤(xは進行方向)
+      camera_base_pose.position.y = camera_base_pose.position.y+PT_Vt(0,0);//緑
+      camera_base_pose.position.z = camera_base_pose.position.z+PT_Vt(1,0);//青
+      camera_base_pose.orientation.x = camera_base_pose.orientation.x+q0;
+      camera_base_pose.orientation.y = camera_base_pose.orientation.y+q1;
+      camera_base_pose.orientation.z = camera_base_pose.orientation.z+q2;
+      camera_base_pose.orientation.w = camera_base_pose.orientation.w+q3;
+      outputfileALL_Vt<<"X:PT_Vt(2,0)="<<PT_Vt(2,0)<<" Y:PT_Vt(0,0)="<<PT_Vt(0,0)<<" Z:PT_Vt(1,0)="<<PT_Vt(1,0)<<"\n";
+    }
+
+    static tf::TransformBroadcaster br_camera_base_pose;
+
+    tf::Transform camera_base_transform;
+    poseMsgToTF(camera_base_pose, camera_base_transform);
+    br_camera_base_pose.sendTransform(tf::StampedTransform(camera_base_transform, ros::Time::now(), source_frame, MaptoCamera_Base_frame));
+    std::cout <<"camera_base_pose.position.x="<<camera_base_pose.position.x<< std::endl;
+    std::cout <<"camera_base_pose.position.y="<<camera_base_pose.position.y<< std::endl;
+    std::cout <<"camera_base_pose.position.z="<<camera_base_pose.position.z<< std::endl;
+    outputfileTF<<"camera_base_pose.position.x="<<camera_base_pose.position.x<<" camera_base_pose.position.y="<<camera_base_pose.position.y<<" camera_base_pose.position.z="<<camera_base_pose.position.z<<"\n";
+
+  //tf(camera_base camera_link間のlink)-----------------------------------------------------------------------------------------
+    geometry_msgs::Pose Camera_BasetoCamera_Link_pose;
+
+    //std::string Camera_BasetoCamera_Link_frame = "Camera_BasetoCamera_Link_link";
+    Camera_BasetoCamera_Link_pose.position.x = 0;
+    Camera_BasetoCamera_Link_pose.position.y = 0;
+    Camera_BasetoCamera_Link_pose.position.z = -0.67;//ここに実際のカメラの高さを入れる
+    Camera_BasetoCamera_Link_pose.orientation.w = 1.0;
+    //Camera_BasetoCamera_Link_pose.position.z = 0.9;//ここに実際のカメラの高さを入れる
+    //Camera_BasetoCamera_Link_pose.orientation.x = quaternionVal.x;
+    //Camera_BasetoCamera_Link_pose.orientation.y = quaternionVal.y;
+    //Camera_BasetoCamera_Link_pose.orientation.z = quaternionVal.z;
+    //Camera_BasetoCamera_Link_pose.orientation.w = quaternionVal.w;
+    //Camera_BasetoCamera_Link_pose.orientation.w = quaternionVal.w;
+    static tf::TransformBroadcaster br_Camera_BasetoCamera_Link_pose;
+
+    tf::Transform Camera_BasetoCamera_transform;
+    poseMsgToTF(Camera_BasetoCamera_Link_pose, Camera_BasetoCamera_transform);
+    br_Camera_BasetoCamera_Link_pose.sendTransform(tf::StampedTransform(Camera_BasetoCamera_transform, ros::Time::now(), MaptoCamera_Base_frame, "camera_link"));
+}
+else{
+  camera_base_pose.position.x = 0;
+  camera_base_pose.position.y = 0;
+  camera_base_pose.position.z = 0;
+  camera_base_pose.orientation.x=0;
+  camera_base_pose.orientation.y=0;
+  camera_base_pose.orientation.z=0;
+  camera_base_pose.orientation.w=0;
+}
+//経路描写-------------------------------------------------------------
+  pose.header.stamp = ros::Time::now();
+  pose.header.frame_id = source_frame;
+  pose.pose.position = camera_base_pose.position;
+  //pose.pose.orientation = camera_base_pose.orientation;
+  path.header.stamp = ros::Time::now();
+  path.header.frame_id = source_frame;
+  path.poses.push_back(pose);
+  pub_plan.publish(path);
+  
    
   
   // 画面表示
@@ -852,7 +1068,9 @@ int main(int argc,char **argv){
 	message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10),rgb_sub, depth_sub, info_sub);
 	sync.registerCallback(boost::bind(&callback,_1, _2, _3));
 
-  
+  ros::NodeHandle nhPub;
+  pub_plan = nhPub.advertise<nav_msgs::Path>("/get_multi_path",1000);
+
 	ros::spin();//トピック更新待機
 			
 	return 0;

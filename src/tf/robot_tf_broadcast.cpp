@@ -112,7 +112,10 @@ int main(int argc, char** argv)
     robot_pose.position.x = 0+(kaisu*0.01);//赤//ここはマーカーとの差が書いてある（つまり座標ではない）
     robot_pose.position.y = 0;//緑
     robot_pose.position.z = 0;//青
-    robot_pose.orientation.w = 1.0;
+    robot_pose.orientation.x = sin(kaisu/ 2);
+    robot_pose.orientation.y = 0;
+    robot_pose.orientation.z = sin(kaisu/ 2);
+    robot_pose.orientation.w = cos(kaisu/ 2);
 
     static tf::TransformBroadcaster br_robot;
     tf::Transform transform_robot;

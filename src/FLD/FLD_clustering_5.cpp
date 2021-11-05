@@ -234,6 +234,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
 
         cv::line(img_line2,cv::Point(lines_NNM[lines_NNM_count][0],lines_NNM[lines_NNM_count][1]),cv::Point(lines_NNM[lines_NNM_count][2],lines_NNM[lines_NNM_count][3]),cv::Scalar(0,0,255), 2, cv::LINE_AA); 
         cv::line(img_line4,cv::Point(lines_NNM[lines_NNM_count][0],lines_NNM[lines_NNM_count][1]),cv::Point(lines_NNM[lines_NNM_count][2],lines_NNM[lines_NNM_count][3]),cv::Scalar(0,0,255), 2, cv::LINE_AA); 
+        cv::line(img_dst,cv::Point(lines_NNM[lines_NNM_count][0],lines_NNM[lines_NNM_count][1]),cv::Point(lines_NNM[lines_NNM_count][2],lines_NNM[lines_NNM_count][3]),cv::Scalar(0,255,0), 4, cv::LINE_AA); 
 
         //座標から一次関数を引く関数
         lines_NNM_thetal[lines_NNM_count]=(M_PI/2)-(M_PI-atan2((lines_NNM[lines_NNM_count][2]-lines_NNM[lines_NNM_count][0]),(lines_NNM[lines_NNM_count][3]-lines_NNM[lines_NNM_count][1])));
@@ -656,6 +657,9 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
             cv::line(img_line4,cv::Point(tatel[j][0],tatel[j][1]),cv::Point(tatel[j][2],tatel[j][3]),cv::Scalar(0,0,255), 1, cv::LINE_AA);
             cv::line(img_dst,cv::Point(tatel[j][0],tatel[j][1]),cv::Point(tatel[j][2],tatel[j][3]),cv::Scalar(0,0,255), 1, cv::LINE_AA);
 
+            cv::line(img_dst,cv::Point(tateclust[MAXT][j][0],tateclust[MAXT][j][1]),
+                cv::Point(tateclust[MAXT][j][2],tateclust[MAXT][j][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);
+
             datat[j]=tateclust[MAXT][clust[j]][4];
 
             //最大クラスタ内の平均角度を求める
@@ -905,6 +909,9 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
                 cv::line(img_line4,cv::Point(yokol[j][0],yokol[j][1]),cv::Point(yokol[j][2],yokol[j][3]),cv::Scalar(255,0,0), 1, cv::LINE_AA);
                 cv::line(img_dst,cv::Point(yokol[j][0],yokol[j][1]),cv::Point(yokol[j][2],yokol[j][3]),cv::Scalar(255,0,0), 1, cv::LINE_AA);
 
+                cv::line(img_dst,cv::Point(yokoclusy[YOKO_CLUST][j][0],yokoclusy[YOKO_CLUST][j][1]),
+                 cv::Point(yokoclusy[YOKO_CLUST][j][2],yokoclusy[YOKO_CLUST][j][3]),cv::Scalar(255,0,0), 4, cv::LINE_AA);
+
                 datay[j]=yokoclusy[YOKO_CLUST][j][4];
             }
         }
@@ -926,17 +933,17 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
                 NNM_TATE_Y[j][i]=(NNMA[j]*NNM_TATE_X[j][i])+NNMB[j];
             }
             //std::cout <<"縦線とヨコ線の交点["<<j<<"]["<<i<<"]=("<<NNM_TATE_X[j][i]<<","<<NNM_TATE_Y[j][i]<<")"<< std::endl;
-            cv::circle(img_dst,cv::Point(NNM_TATE_X[j][i],NNM_TATE_Y[j][i]),3,Scalar(0,255,255),-1);
+            //cv::circle(img_dst,cv::Point(NNM_TATE_X[j][i],NNM_TATE_Y[j][i]),3,Scalar(0,255,255),-1);
         }
     }
-    //特徴点検出
-    vector<cv::Point2f> points_curr;//特徴点定義
-	cv::goodFeaturesToTrack(img_gray, points_curr, 100, 0.01, 10, cv::Mat(), 3, 3, 0, 0.04);// 特徴点検出(グレースケール画像から特徴点検出)
-	cv::cornerSubPix(img_gray, points_curr, cv::Size(10, 10), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, 0.03));
-	for (int i = 0; i < points_curr.size(); i++) {
-  	  cv::circle(img_dst, cv::Point(points_curr[i].x, points_curr[i].y), 2, cv::Scalar(255, 255, 0), 1.5);
-  	  cv::circle(img_dst, cv::Point(points_curr[i].x, points_curr[i].y), 8, cv::Scalar(255, 255, 0), 1.2);
-  	}
+    ////特徴点検出
+    //vector<cv::Point2f> points_curr;//特徴点定義
+	//cv::goodFeaturesToTrack(img_gray, points_curr, 100, 0.01, 10, cv::Mat(), 3, 3, 0, 0.04);// 特徴点検出(グレースケール画像から特徴点検出)
+	//cv::cornerSubPix(img_gray, points_curr, cv::Size(10, 10), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, 0.03));
+	//for (int i = 0; i < points_curr.size(); i++) {
+  	//  cv::circle(img_dst, cv::Point(points_curr[i].x, points_curr[i].y), 2, cv::Scalar(255, 255, 0), 1.5);
+  	//  cv::circle(img_dst, cv::Point(points_curr[i].x, points_curr[i].y), 8, cv::Scalar(255, 255, 0), 1.2);
+  	//}
 
    
     std::cout <<"for文終了"<< std::endl;
