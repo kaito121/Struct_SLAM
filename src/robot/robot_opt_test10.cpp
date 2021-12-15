@@ -136,8 +136,6 @@ float ALLrealsec;//サンプリング時間（C++)
 float realsecV1,ALLrealsecV1;//直進動作時間（C++)
 float realsecM1,ALLrealsecM1;//回転動作時間（C++)
 
-double robot_orientationX,robot_orientationY,robot_orientationZ;//ロボットの姿勢観測値(エンコーダー観測値)(オイラー角)
-
 double roll, pitch, yaw;//クオータニオン→オイラー角変換用
 double Act_RobotX=0,Act_RobotY=0,Act_RobotTH=0;//ロボットの状態方程式(実際の状態)
 double Des_RobotX=0,Des_RobotY=0,Des_RobotTH=0;//ロボットの状態方程式(理想状態)
@@ -250,12 +248,13 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
 	  img_dst = image.clone();
 	  img_dst2 = image.clone();
     img_dst2 = cv::Scalar(255,255,255);
-    cv::Mat_<float> intrinsic_K= cv::Mat_<float>(3, 3);
+    
 
   //マーカー検出+外部パラメータ推定-------------------------------------------------------------------------------------------  
   //カメラ内部パラメータ読み込み
   cv::Mat cameraMatrix;
   cv::FileStorage fs;
+  cv::Mat_<float> intrinsic_K= cv::Mat_<float>(3, 3);
   fs.open("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/realsense_para.xml", cv::FileStorage::READ);
   fs["intrinsic"]>>cameraMatrix;
   intrinsic_K=cameraMatrix;
@@ -453,7 +452,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
           realsecV1 = diffsecV1+diffsubV1*1e-6;                          // 実時間を計算
           ALLrealsecV1=ALLrealsecV1+realsecV1;
         }
-        robot_velocity.linear.x  = 0.1;//(0.1)
+        robot_velocity.linear.x  = 0.25;//(0.1)
         robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
         if(Des_RobotX>=2.7){
           X_25=true;
@@ -470,10 +469,10 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
           ALLrealsecM1=ALLrealsecM1+realsecM1;//経過時刻
         }
         robot_velocity.linear.x  =  0.0;
-        //robot_velocity.angular.z  =  0.5+(0.0176*ALLrealsecM1+0.11);//(0.5)廊下
-        robot_velocity.angular.z  =  -(0.2+(0.0176*ALLrealsecM1+0.11));//(0.5)研究室
+        //robot_velocity.angular.z  =  0.2+(0.0176*ALLrealsecM1+0.11);//(0.5)廊下
+        robot_velocity.angular.z  =  -(0.15+(0.0176*ALLrealsecM1+0.11));//(0.5)研究室
         //if(Des_RobotTH>=3.141592653/2){//廊下
-        if(Des_RobotTH<=-3.141592653/2.4){//研究室
+        if(Des_RobotTH<=-3.141592653/2.15){//研究室
           TH_90=true;
           robot_velocity.linear.x  = 0.0; // 並進速度vの初期化
           robot_velocity.angular.z = 0.0; // 回転速度ωの初期化}//xが1以上になったら終了
@@ -484,10 +483,10 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       }
 
       if(X_25==true&&TH_90==true&&Y_05==false){
-        robot_velocity.linear.x  = 0.1;//(0.1)
+        robot_velocity.linear.x  = 0.25;//(0.1)
         robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
-        if(Des_RobotY>=2.0){//研究室
-        //if(Des_RobotY<=-2.0){//廊下
+        //if(Des_RobotY>=2.0){//研究室
+        if(Des_RobotY<=-2.0){//廊下
           Y_05=true;
         }
       }
@@ -499,17 +498,17 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     pub.publish(robot_velocity);    // 速度指令メッセージをパブリッシュ（送信）
 
       if(X_25==false&&TH_90==false&&Y_05==false){
-        robot_velocity.linear.x  = 0.1;//(0.1)
+        robot_velocity.linear.x  = 0.25;//(0.1)
         robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
       }
       if(X_25==true&&TH_90==false&&Y_05==false){
         robot_velocity.linear.x  =  0.0;
-        //robot_velocity.angular.z  =  0.5;//(0.5)廊下はこっち
-        //robot_velocity.angular.z  =  -0.5;//(0.5)研究室
-        robot_velocity.angular.z  =  -0.3;//(0.5)研究室(rosbag_0.2)
+        //robot_velocity.angular.z  =  0.3;//(0.5)廊下はこっち
+        robot_velocity.angular.z  =  -0.25;//(0.5)研究室
+        //robot_velocity.angular.z  =  -0.3;//(0.5)研究室(rosbag_0.2)
       }
       if(X_25==true&&TH_90==true&&Y_05==false){
-        robot_velocity.linear.x  = 0.1;//(0.1)
+        robot_velocity.linear.x  = 0.25;//(0.1)
         robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
       }
       if(X_25==true&&TH_90==true&&Y_05==true){
@@ -1385,16 +1384,9 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
             //MP_curr_world[i].y=(MP_curr_world[i].y+MP_curr_world2[i].y)/2;
             //MP_curr_world[i].z=(MP_curr_world[i].z+MP_curr_world2[i].z)/2;
             std::cout <<"新規テンプレートの世界座標:MP_curr_world["<<i<<"]="<<MP_curr_world[i]<< std::endl;
-
           }
           //MP_curr_world2.resize(DMP_curr_ok);//Depth取得可能数でリサイズ(マッチング中心世界座標)
-
           W_point2 <<"\n";
-
-
-          
-
-
         }//if(markerIds.size() <= 0)→END
 
         //新規テンプレート追加動作-------------------------------------------------------
@@ -1943,11 +1935,8 @@ int main(int argc,char **argv){
   Act_pub_plan = nhPub.advertise<nav_msgs::Path>("/Act_path",1000);
   Est_pub_plan = nhPub.advertise<nav_msgs::Path>("/Est_path",1000);
 
-  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.5, 0.28, 3.0);//(x,y,z)ここはカメラ座標系で記述(中の値はロボット座標に変換済み)
-  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<1.5, 0.28, 2.9);
-  //MarkerW[3]= (cv::Mat_<float>(3, 1) <<4.0, 0.28, 2.0);
-  //MarkerW[3]= (cv::Mat_<float>(3, 1) <<2.2, 0.280, 0.79);
 
+  //(x,y,z)ここはカメラ座標系で記述(中の値はロボット座標に変換済み)
   //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.20, 0.28, 3.0);//(x,y,z)ここはカメラ座標系で記述(中の値はロボット座標に変換済み)
   //MarkerW[5]= (cv::Mat_<float>(3, 1) <<0.20, 0.28, 3.0);
   //MarkerW[3]= (cv::Mat_<float>(3, 1) <<0.40, 0.28, 3.0);
@@ -1975,6 +1964,19 @@ int main(int argc,char **argv){
   //MarkerW[3]= (cv::Mat_<float>(3, 1) <<0.0, 0.28, 2.0);//20211104研究室(直進1.7m,回転-3.141592653/2.2,速度0.1,角速度-(0.2+(0.0176*ALLrealsecM1+0.11)))
   //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-1.5, 0.28, 2.3);
   //MarkerW[5]= (cv::Mat_<float>(3, 1) <<-2.3, 0.28, 1.74);
+
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.5, 0.28, 3.0);//20211109廊下(直進2m,回転3.141592653/2.0,速度0.1,角速度(0.2+(0.0176*ALLrealsecM1+0.11)))
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<1.5, 0.28, 2.9);//実測値(X:3.42,Y:1.99)
+  //MarkerW[3]= (cv::Mat_<float>(3, 1) <<4.0, 0.28, 2.0);
+  //MarkerW[3]= (cv::Mat_<float>(3, 1) <<2.2, 0.280, 0.79);
+
+  //MarkerW[3]= (cv::Mat_<float>(3, 1) <<1.0, 0.28, 3.0);//20211110廊下(直進40m,速度0.5)
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<1.0, 0.28, 12.95);//実測値(X:3.42,Y:1.99)
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<1.0, 0.28, 27.67);
+
+    //20211123研究室(直進3.0m,速度0.25,回転-π/2.15度,回転速度0.15+α,直進2.0m,速度0.25)特徴が多い環境での自己位置推定
+  MarkerW[0]= (cv::Mat_<float>(3, 1) <<0.0, 0.28, 3.00);
+  MarkerW[1]= (cv::Mat_<float>(3, 1) <<-2.3, 0.28, 2.74);
 
     
 	ros::spin();//トピック更新待機

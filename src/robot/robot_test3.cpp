@@ -313,7 +313,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
 
         robot_velocity.linear.x  = 0.1;//(0.1)
         robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
-        if(Des_RobotX>=2.0){
+        if(Des_RobotX>=2.7){
           X_25=true;
         }
         kaisuV1++;
@@ -327,17 +327,15 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
           ALLrealsecM1=ALLrealsecM1+realsecM1;//経過時刻
         }
         robot_velocity.linear.x  =  0.0;
-        robot_velocity.angular.z  =  0.5+(0.0176*ALLrealsecM1+0.11);//(0.5)
-        //robot_velocity.angular.z  =  -(0.5+(0.0176*ALLrealsecM1+0.11));//(0.5)
-        if(Des_RobotTH>=3.141592653/2){
-        //if(Des_RobotTH<=-3.141592653/2){
+        //robot_velocity.angular.z  =  0.5+(0.0176*ALLrealsecM1+0.11);//(0.5)廊下
+        robot_velocity.angular.z  =  -(0.2+(0.0176*ALLrealsecM1+0.11));//(0.5)研究室
+        //if(Des_RobotTH>=3.141592653/2){//廊下
+        if(Des_RobotTH<=-3.141592653/2.4){//研究室
           TH_90=true;
-          //for(int j=0;j<=10;j++){
             robot_velocity.linear.x  = 0.0; // 並進速度vの初期化
             robot_velocity.angular.z = 0.0; // 回転速度ωの初期化}//xが1以上になったら終了
             pub.publish(robot_velocity);    // 速度指令メッセージをパブリッシュ（送信）
             usleep(7*100000);//0.5秒ストップ(マイクロ秒)
-          //}
         }
         kaisuM1++;
       }
@@ -345,8 +343,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       if(X_25==true&&TH_90==true&&Y_05==false){
         robot_velocity.linear.x  = 0.1;//(0.1)
         robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
-        //if(Des_RobotY>=2.5){
-        if(Des_RobotY<=-2.0){
+        if(Des_RobotY>=2.0){//研究室
+        //if(Des_RobotY<=-2.0){//廊下
           Y_05=true;
         }
       }
@@ -363,8 +361,10 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       }
       if(X_25==true&&TH_90==false&&Y_05==false){
         robot_velocity.linear.x  =  0.0;
-        robot_velocity.angular.z  =  0.5;//(0.5)
+        //robot_velocity.angular.z  =  0.5;//(0.5)廊下はこっち
         //robot_velocity.angular.z  =  -0.5;//(0.5)
+        robot_velocity.angular.z  =  -0.3;//(0.5)研究室(rosbag_0.2)
+
       }
       if(X_25==true&&TH_90==true&&Y_05==false){
         robot_velocity.linear.x  = 0.1;//(0.1)
@@ -825,11 +825,11 @@ int main(int argc,char **argv){
   Est_pub_plan = nhPub.advertise<nav_msgs::Path>("/Est_path",1000);
 
   //マーカーの世界座標登録(単位はmm)(20210930のrobag)
-  MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.5, 0.460, 3.0);
-  MarkerW[5]= (cv::Mat_<float>(3, 1) <<1.5, 0.460, 2.9);
-  MarkerW[3]= (cv::Mat_<float>(3, 1) <<4.0, 0.460, 2.0);//通路のマーキング場所
-  //MarkerW[3]= (cv::Mat_<float>(3, 1) <<2.2, 0.460, 0.79);//ゼミ室前のドア
-  MarkerW[6]= (cv::Mat_<float>(3, 1) <<-0.5, 0.460, 3.0);
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.5, 0.460, 3.0);
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<1.5, 0.460, 2.9);
+  //MarkerW[3]= (cv::Mat_<float>(3, 1) <<4.0, 0.460, 2.0);//通路のマーキング場所
+  ////MarkerW[3]= (cv::Mat_<float>(3, 1) <<2.2, 0.460, 0.79);//ゼミ室前のドア
+  //MarkerW[6]= (cv::Mat_<float>(3, 1) <<-0.5, 0.460, 3.0);
 
 
   //MarkerW[6]= (cv::Mat_<float>(3, 1) <<0, 0.460, 2.0);
@@ -845,6 +845,10 @@ int main(int argc,char **argv){
   //MarkerW[4]= (cv::Mat_<float>(3, 1) <<2300, 460, 6000);
   //MarkerW[8]= (cv::Mat_<float>(3, 1) <<3000, 880, 5250);
   //MarkerW[9]= (cv::Mat_<float>(3, 1) <<2800, 830, 3600);
+
+  MarkerW[3]= (cv::Mat_<float>(3, 1) <<0.0, 0.28, 3.0);//20211030研究室(直進2.7m,回転-3.141592653/2.4,速度0.1,角速度-(0.2+(0.0176*ALLrealsecM1+0.11)))
+  MarkerW[4]= (cv::Mat_<float>(3, 1) <<-2.3, 0.28, 2.74);
+  MarkerW[8]= (cv::Mat_<float>(3, 1) <<0.62, 0.73, 2.60);
 
     
 	ros::spin();//トピック更新待機
