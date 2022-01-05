@@ -489,7 +489,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     }*/
     //pub.publish(robot_velocity);    // 速度指令メッセージをパブリッシュ（送信）
     
-     //廊下動作-----------------------------------------------------------------------------------------------------------------
+     /*//廊下動作-----------------------------------------------------------------------------------------------------------------
       std::cout << "X_25=" <<X_25<<",TH_90=" <<TH_90<<",Y_05=" <<Y_05<< std::endl;
       if(X_25==false&&TH_90==false&&Y_05==false){
         gettimeofday(&startTimeV1, NULL);// 直進動作開始時刻
@@ -549,10 +549,10 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       if(X_25==true&&TH_90==true&&Y_05==true){
           robot_velocity.linear.x  = 0.0; // 並進速度vの初期化
           robot_velocity.angular.z = 0.0; // 回転速度ωの初期化}//xが1以上になったら終了
-      }
+      }*/
 
       //研究室動作-------------------------------------------------------------------------------------
-      /*std::cout << "X_25=" <<X_25<<",TH_90=" <<TH_90<<",Y_05=" <<Y_05<< std::endl;
+      std::cout << "X_25=" <<X_25<<",TH_90=" <<TH_90<<",Y_05=" <<Y_05<< std::endl;
       if(X_25==false&&TH_90==false&&Y_05==false){
         gettimeofday(&startTimeV1, NULL);// 直進動作開始時刻
         if(kaisuV1!=0){
@@ -610,7 +610,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     if(X_25==true&&TH_90==true&&Y_05==true){
       robot_velocity.linear.x  = 0.0; // 並進速度vの初期化
       robot_velocity.angular.z = 0.0; // 回転速度ωの初期化}//xが1以上になったら終了
-    }*/
+    }
 
     Act_RobotV=robot_odometry.twist.twist.linear.x+robot_odometry.twist.twist.linear.y;//速度ベクトルの合成
     std::cout << "Act_RobotV=" <<Act_RobotV<< std::endl;
@@ -2307,15 +2307,15 @@ int main(int argc,char **argv){
   //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=8.0;
 
   //20211123研究室(直進3.0m,速度0.25,回転-π/2.15度,回転速度0.15+α,直進2.0m,速度0.25)特徴が多い環境での自己位置推定
-  //MarkerW[0]= (cv::Mat_<float>(3, 1) <<0.0, 0.28, 3.00);
-  //MarkerW[1]= (cv::Mat_<float>(3, 1) <<-2.3, 0.28, 2.74);
-  //LX=3.0,VX=0.25,omegaZ=2.15,THZ=0.25;
+  MarkerW[0]= (cv::Mat_<float>(3, 1) <<0.0, 0.28, 3.00);
+  MarkerW[1]= (cv::Mat_<float>(3, 1) <<-2.3, 0.28, 2.74);
+  LX=3.0,VX=0.25,omegaZ=2.15,THZ=0.25;
 
   //20211201V1廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.15+α,直進5.0m,速度0.25)廊下回転動作実験
-  MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.55, 0.28, 2.85);//実測値(X:2.22,4.25)
-  MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.55, 0.28, 2.85);
-  MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
-  LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.55, 0.28, 2.85);//実測値(X:2.22,4.25)
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.55, 0.28, 2.85);
+  //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+  //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
 
 	ros::spin();//トピック更新待機
 			

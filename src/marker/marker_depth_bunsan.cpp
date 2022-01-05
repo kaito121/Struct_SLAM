@@ -117,6 +117,12 @@ ofstream outputfilet("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/5.0_ID27_t
 ofstream filesamplet("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/5.0_ID27_samplingtime.txt");
 
 
+ofstream cameraL("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/CameraL.txt");
+ofstream cameraPH("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/CameraPH.txt");
+ofstream cameraT("/home/fuji/catkin_ws/src/Struct_SLAM/src/marker/CameraT.txt");
+double CameraL,CameraPH,ALLrealsec=0;
+
+
 //コールバック関数
 void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Image::ConstPtr& depth_msg, const sensor_msgs::CameraInfo::ConstPtr& cam_info)
 {
@@ -128,6 +134,7 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
     time_t diffsec = difftime(startTime.tv_sec, endTime.tv_sec);    // 秒数の差分を計算
     suseconds_t diffsub = startTime.tv_usec - endTime.tv_usec;      // マイクロ秒部分の差分を計算
     realsec = diffsec+diffsub*1e-6;                          // 実時間を計算
+    ALLrealsec=ALLrealsec+realsec;
     printf("処理の時間=%f\n", realsec);
   }
   //サンプリング時間取得(ROS)
@@ -350,7 +357,14 @@ void callback(const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Ima
       //std::cout <<"MPy[6]["<<kaisu<<"]="<<point[6][1]<< std::endl;//コーナーのカメラ座標(ID対応)
       //std::cout <<"MPz[6]["<<kaisu<<"]="<<point[6][2]<< std::endl;//コーナーのカメラ座標(ID対応)
 
-      
+
+
+      //カルマンフィルタの事前誤差共分散の取得実験
+      CameraL=sqrt((MC_point[markerIds.at(0)][0]*MC_point[markerIds.at(0)][0])+(MC_point[markerIds.at(0)][2]*MC_point[markerIds.at(0)][2]));
+      CameraPH=atan2(MC_point[markerIds.at(0)][0],MC_point[markerIds.at(0)][2]);
+      cameraL<<CameraL <<"\n";
+      cameraPH<<CameraPH <<"\n";
+      cameraT<<ALLrealsec <<"\n";
   }
   
     // 画面表示

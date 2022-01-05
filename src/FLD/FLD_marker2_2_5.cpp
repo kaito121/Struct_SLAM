@@ -2686,6 +2686,10 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         Qt= (cv::Mat_<double>(2,2) <<//センサーの誤差共分散(直進と角度の誤差共分散を代入)
           (lu*lu)*0.0006,  0,
           0,            0.00008);
+        
+        //Qt= (cv::Mat_<double>(2,2) <<//センサーの誤差共分散(直進と角度の誤差共分散を代入)
+        //  (lu*lu)*1.83216E-5,  0,
+        //  0,            0.000000008);
 
         cv::Mat tempK=Qt+(Ht*Cov*Ht.t());
         K=Cov*Ht.t()*tempK.inv();//カルマンゲインK
@@ -2742,6 +2746,10 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         Qt= (cv::Mat_<double>(2,2) <<//センサーの誤差共分散(直進と角度の誤差共分散を代入)
           (lu*lu)*0.0006,  0,
           0,            0.00008);
+
+        //Qt= (cv::Mat_<double>(2,2) <<//センサーの誤差共分散(直進と角度の誤差共分散を代入)
+        //  (lu*lu)*1.83216E-5,  0,
+        //  0,            0.000000008);
 
         //カルマンゲインK
         cv::Mat tempK=Qt+(Ht*Cov*Ht.t());

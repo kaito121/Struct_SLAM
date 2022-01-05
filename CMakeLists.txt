@@ -1385,10 +1385,10 @@ add_dependencies(FLD_clustering_6 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(FLD_clustering_6 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20211008 FLD_clustering_6の線中点をテンプレートとしたテンプレートマッチングを行う
-#add_executable(FLD_clustering_6_1 src/FLD/FLD_clustering_6_1.cpp)
-#add_dependencies(FLD_clustering_6_1 ${PROJECT_NAME}_gencfg)
-#add_dependencies(FLD_clustering_6_1 ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(FLD_clustering_6_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(FLD_clustering_6_1 src/FLD/FLD_clustering_6_1.cpp)
+add_dependencies(FLD_clustering_6_1 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_clustering_6_1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_clustering_6_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #20211005 ORB特徴点検出で運動パラメータ推定
 #add_executable(ORB_point_test1 src/test/ORB_point_test1.cpp)
@@ -1660,6 +1660,12 @@ add_dependencies(robot_opt_test11 ${PROJECT_NAME}_gencfg)
 add_dependencies(robot_opt_test11 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(robot_opt_test11 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#20220105 robot_opt_test11のカルマン修正版(Des→Act)(比例制御導入前プログラム)(特徴点自己位置推定)
+add_executable(robot_opt_test11_0 src/robot/robot_opt_test11_0.cpp)
+add_dependencies(robot_opt_test11_0 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test11_0 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test11_0 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
 #20211110 特徴線テンプレマッチ自己位置推定
 add_executable(robot_FLD1 src/robot/robot_FLD1.cpp)
 add_dependencies(robot_FLD1 ${PROJECT_NAME}_gencfg)
@@ -1786,4 +1792,32 @@ add_dependencies(robot_opt_test11_3 ${PROJECT_NAME}_gencfg)
 add_dependencies(robot_opt_test11_3 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(robot_opt_test11_3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#20211216 テンプレートマッチングの性能評価プログラム(特徴線)(予測範囲有り)
+add_executable(Test_line_temple src/test/Experiment/Test_line_temple.cpp)
+add_dependencies(Test_line_temple ${PROJECT_NAME}_gencfg)
+add_dependencies(Test_line_temple ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Test_line_temple ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
+#20211216 テンプレートマッチングの性能評価プログラム(特徴線)(予測範囲なし)
+add_executable(template_line_test src/test/Experiment/template_line_test.cpp)
+add_dependencies(template_line_test ${PROJECT_NAME}_gencfg)
+add_dependencies(template_line_test ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_line_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211217 テンプレートマッチングのテンプレート画像引き継ぎ変更(FLD_marker2_2_5→FLD_marker2_2_6)
+add_executable(FLD_marker2_2_6 src/FLD/FLD_marker2_2_6.cpp)
+add_dependencies(FLD_marker2_2_6 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_marker2_2_6 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_marker2_2_6 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211202 テンプレートマッチングのテンプレート画像引き継ぎ変更(robot_opt_test11_3→robot_opt_test11_4)(特徴点自己位置推定プログラム)
+add_executable(robot_opt_test11_4 src/robot/robot_opt_test11_4.cpp)
+add_dependencies(robot_opt_test11_4 ${PROJECT_NAME}_gencfg)
+add_dependencies(robot_opt_test11_4 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(robot_opt_test11_4 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20211220 実験用プログラム(全範囲テンプレートマッチング自己位置推定)(FLD_marker2_2_6ベース)
+add_executable(FLD_marker_test1 src/test/Experiment/FLD_marker_test1.cpp)
+add_dependencies(FLD_marker_test1 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_marker_test1 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_marker_test1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

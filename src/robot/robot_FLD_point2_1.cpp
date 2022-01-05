@@ -69,7 +69,8 @@ std::string win_img_1 = "img_1";//カメラ画像
 std::string win_graph = "graph";//グラフ作成
 
 std::string win_tate = "tate";//縦線関連の画像表示用
-
+std::string win_tmp = "tmp";//テンプレートの画像表示用
+cv::Mat img_tmp;
 
 using namespace std;
 using namespace cv;
@@ -294,6 +295,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
   img_line4 = img_src.clone();
   img_line4 = cv::Scalar(255,255,255);
   img_tate = img_src.clone();
+  img_tmp = img_src.clone();
   img_graph= img_src.clone();
   img_graph= cv::Scalar(255,255,255);
 
@@ -1236,6 +1238,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
           cv::Rect roi2(cv::Point(tate_point_curr[i].x-template_size,tate_point_curr[i].y-template_size), cv::Size(template_size*2, template_size*2));//縦線中点を中心とした16☓16pixelの画像を切り取る
           TPCC_Templ[DTPC_ok] = img_src(roi2); // 切り出し画像
           cv::rectangle(img_tate, roi2,cv::Scalar(255, 255, 255), 2);//テンプレート位置
+          cv::rectangle(img_tmp, roi2,cv::Scalar(255, 255, 255), 2);//テンプレート位置
           //cv::rectangle(img_master_temp, cv::Point(tate_point_curr[i].x-template_size,tate_point_curr[i].y+template_size), 
           //cv::Point(tate_point_curr[i].x+template_size,tate_point_curr[i].y-template_size), cv::Scalar(255, 255, 255), 2, cv::LINE_AA);//四角形を描写(白)
           std::cout <<"縦線中点の画像座標(DTPC_ok)["<<DTPC_ok<<"]="<<tate_point_curr[DTPC_ok]<< std::endl;//縦線中点の座標(範囲制限後)
@@ -3568,6 +3571,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
   cv::namedWindow(win_line4, cv::WINDOW_AUTOSIZE);
   cv::namedWindow(win_graph, cv::WINDOW_AUTOSIZE);
   cv::namedWindow(win_tate, cv::WINDOW_AUTOSIZE);
+  cv::namedWindow(win_tmp, cv::WINDOW_AUTOSIZE);
 
   cv::imshow(win_src, img_src);
   //cv::imshow(win_depth, img_depth);
@@ -3578,6 +3582,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
   cv::imshow(win_line4, img_line4);
   cv::imshow(win_graph, img_graph);
   cv::imshow(win_tate, img_tate);//縦線関連の表示用
+  cv::imshow(win_tmp, img_tmp);//テンプレート画像表示用
 
   //初回動作時＋検出時
   //特徴点
