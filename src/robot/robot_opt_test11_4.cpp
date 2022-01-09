@@ -1918,6 +1918,13 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       act_robotxx<<Act_RobotX<<"\n";
       act_robotyy<<Act_RobotY<<"\n";
       act_robotthth<<Act_RobotTH<<"\n";
+      
+      std::cout <<"Act_RobotX="<<Act_RobotX<< std::endl;
+      std::cout <<"Act_RobotY="<<Act_RobotY<< std::endl;
+      std::cout <<"Act_RobotTH="<<Act_RobotTH<< std::endl;
+      std::cout <<"Est_RobotX="<<Est_RobotX<< std::endl;
+      std::cout <<"Est_RobotY="<<Est_RobotY<< std::endl;
+      std::cout <<"Est_RobotTH="<<Est_RobotTH<< std::endl;
     }
   }//if(time0 != false)→END
   
@@ -2256,16 +2263,47 @@ int main(int argc,char **argv){
   //MarkerW[1]= (cv::Mat_<float>(3, 1) <<-2.3, 0.28, 2.74);
   //LX=3.0,VX=0.25,omegaZ=2.15,THZ=0.25;
 
-  //20211202V1〜20211207V1廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.15+α,直進5.0m,速度0.25)廊下回転動作実験
+  //20211202V1〜廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.15+α,直進5.0m,速度0.25)廊下回転動作実験
   //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.55, 0.28, 2.85);//実測値(X:2.22,4.25)
   //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.55, 0.28, 2.85);
   //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
   //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
 
+  //2022-01-08廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.15+α,直進5.0m,速度0.25)廊下回転動作実験
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.35, 0.28, 2.95);//実測値(X:2.22,4.25)
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
+  //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+  //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
+
+  //20211207V1廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.25,直進5.0m,速度0.25)廊下回転動作実験
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.35, 0.28, 2.95);//実測値(X:1.573,4.955)
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
+  //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+  //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
+
   //20211207V2廊下(直進12.0m,速度0.25)直線動作実験(研究室前スタート)
-  MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 3.0);//実測値(X:0.909,Y:11.770)
-  MarkerW[5]= (cv::Mat_<float>(3, 1) <<-0.932, 0.28, 7.754);
-  LX=12.0,VX=0.25,omegaZ=0,THZ=0,LY=0;
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 3.0);//実測値(X:0.909,Y:11.770)
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<-0.932, 0.28, 7.754);
+  //LX=12.0,VX=0.25,omegaZ=0,THZ=0,LY=0;
+
+  //2022-01-08廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.35, 0.28, 2.95);//実測値(X:1.57,Y:4.95)
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
+  //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+  //LX=2.0,VX=0.25,omegaZ=2.0,THZ=0.20,LY=5.0;
+
+  //2022-01-08-V2廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.00, 0.28, 2.95);//実測値(X:1.57,Y:4.95)
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
+  //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+  //LX=2.0,VX=0.25,omegaZ=2.0,THZ=0.20,LY=5.0;
+
+  //2022-01-09-V1廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
+  MarkerW[4]= (cv::Mat_<float>(3, 1) <<1.00, 0.28, 3.00);//実測値
+  MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.62, 0.28, 2.90);
+  MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.48, 0.28, 2.90);
+  LX=2.5,VX=0.25,omegaZ=2.05,THZ=0.20,LY=5.0;
+
 
 	ros::spin();//トピック更新待機
 			

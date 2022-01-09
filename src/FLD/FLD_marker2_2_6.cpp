@@ -1445,7 +1445,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
           usleep(7*100000);//0.5秒ストップ(マイクロ秒)
         }
       }
-      //回転動作
+      //回転動作(半時計回り)
       else if(X_25==true&&TH_90==false&&Y_05==false){
         robot_velocity.linear.x  =  0;
         robot_velocity.angular.z  =  THZ+(Des_RobotTH-Act_RobotTH)*2.2;//実行指令値
@@ -3139,10 +3139,34 @@ int main(int argc,char **argv){
     //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
     //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
 
+    //20211207V1廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.25,直進5.0m,速度0.25)廊下回転動作実験
+    //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.35, 0.28, 2.95);//実測値(X:1.573,4.955)
+    //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
+    //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+    //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
+
     //20211207V2廊下(直進12.0m,速度0.25)直線動作実験(研究室前スタート)
-    MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 3.0);//実測値(X:0.909,Y:11.770)
-    MarkerW[5]= (cv::Mat_<float>(3, 1) <<-0.932, 0.28, 7.754);
-    LX=12.0,VX=0.25,omegaZ=0,THZ=0,LY=0;
+    //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 3.0);//実測値(X:0.909,Y:11.770)
+    //MarkerW[5]= (cv::Mat_<float>(3, 1) <<-0.932, 0.28, 7.754);
+    //LX=12.0,VX=0.25,omegaZ=0,THZ=0,LY=0;
+
+    //2022-01-08-V1廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
+    //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.35, 0.28, 2.95);//実測値(X:1.57,Y:4.95)
+    //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
+    //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+    //LX=2.0,VX=0.25,omegaZ=2.0,THZ=0.20,LY=5.0;
+
+    //2022-01-08-V2廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
+    //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.00, 0.28, 2.95);//実測値(X:1.57,Y:4.95)
+    //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
+    //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+    //LX=2.0,VX=0.25,omegaZ=2.0,THZ=0.20,LY=5.0;
+
+    //2022-01-09廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
+    MarkerW[4]= (cv::Mat_<float>(3, 1) <<1.00, 0.28, 3.00);
+    MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.62, 0.28, 2.90);
+    MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.48, 0.28, 2.90);
+    LX=2.5,VX=0.25,omegaZ=2.05,THZ=0.20,LY=5.0;
 
 	ros::spin();//トピック更新待機
 			

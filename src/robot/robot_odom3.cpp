@@ -155,8 +155,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
 
 //ロボット指令-------------------------------------------------------------------
     robot_odometry=*msg;
-    /*//回転動作
-    if(X_25==false&&TH_90==false&&Y_05==false){
+    //回転動作
+    /*if(X_25==false&&TH_90==false&&Y_05==false){
       robot_velocity.linear.x  =  0;
       robot_velocity.angular.z  =  -THZ+(Des_RobotTH-Act_RobotTH)*2.2;//実行指令値
       Des2_V<<robot_velocity.linear.x<<"\n";
@@ -184,7 +184,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       pub.publish(robot_velocity);    // 速度指令メッセージをパブリッシュ（送信）
       usleep(7*100000);//0.5秒ストップ(マイクロ秒)
     }*/
-    //廊下動作1-----------------------------------------------------------------------------------------------------------------
+    /*//廊下動作1-----------------------------------------------------------------------------------------------------------------
       std::cout << "X_25=" <<X_25<<",TH_90=" <<TH_90<<",Y_05=" <<Y_05<< std::endl;
       //直進動作
       if(X_25==false&&TH_90==false&&Y_05==false){
@@ -208,9 +208,9 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         robot_velocity.linear.x  = 0.0; // 並進速度vの初期化
         robot_velocity.angular.z = 0.0; // 回転速度ωの初期化}//xが1以上になったら終了
         pub.publish(robot_velocity);    // 速度指令メッセージをパブリッシュ（送信）
-      }
+      }*/
    
-     /*//廊下動作1-----------------------------------------------------------------------------------------------------------------
+     //廊下動作1(反時計回り)-----------------------------------------------------------------------------------------------------------------
       std::cout << "X_25=" <<X_25<<",TH_90=" <<TH_90<<",Y_05=" <<Y_05<< std::endl;
       //直進動作
       if(X_25==false&&TH_90==false&&Y_05==false){
@@ -230,7 +230,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
           usleep(7*100000);//0.5秒ストップ(マイクロ秒)
         }
       }
-      //回転動作
+      //回転動作(反時計回り)
       else if(X_25==true&&TH_90==false&&Y_05==false){
         robot_velocity.linear.x  =  0;
         robot_velocity.angular.z  =  THZ+(Des_RobotTH-Act_RobotTH)*2.2;//実行指令値
@@ -270,7 +270,9 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         robot_velocity.linear.x  = 0.0; // 並進速度vの初期化
         robot_velocity.angular.z = 0.0; // 回転速度ωの初期化}//xが1以上になったら終了
         pub.publish(robot_velocity);    // 速度指令メッセージをパブリッシュ（送信）
-      }*/
+      }
+
+      
 
       //研究室動作-------------------------------------------------------------------------------------
       /*std::cout << "X_25=" <<X_25<<",TH_90=" <<TH_90<<",Y_05=" <<Y_05<< std::endl;
@@ -525,7 +527,8 @@ int main(int argc,char **argv){
   ros::NodeHandle nh;//パブリッシュ用
   pub= nh.advertise<geometry_msgs::Twist>("/robot1/mobile_base/commands/velocity", 10);
 
-  LX=10.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
+  //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
+  LX=2.5,VX=0.25,omegaZ=2.05,THZ=0.20,LY=5.0;
 
 	ros::spin();//トピック更新待機
 	return 0;
