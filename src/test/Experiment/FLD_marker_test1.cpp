@@ -1613,7 +1613,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       std::cout <<"二回目動作:DTPP_ok="<<DTPP_ok<< std::endl;
       for(int i=0;i<DTPP_ok;i++){
         //予測範囲に対しテンプレートマッチングを行う
-        std::cout << "テンプレートマッチングプログラム["<<i<<"]"<< std::endl;
+        //std::cout << "テンプレートマッチングプログラム["<<i<<"]"<< std::endl;
         TPCP_Templ[i].copyTo(img_template1); // 切り出し画像
         //cv::imshow("win_TPCP_Templ", TPCP_Templ[i]);//黄色の特徴点を中心としたクロップ画像
 
@@ -1801,7 +1801,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         matchT_prev=0;
         for(int i=0;i<DMT_prev_ok;i++){
           //予測範囲に対しテンプレートマッチングを行う
-          std::cout << "テンプレートマッチングプログラム["<<i<<"]"<< std::endl;
+          //std::cout << "テンプレートマッチングプログラム["<<i<<"]"<< std::endl;
           MT_prev_Templ[i].copyTo(img_template1); // 切り出し画像
 
           cv::Mat img_minmax1;
@@ -2318,7 +2318,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
 
       //更新ステップは特徴点の数だけ更新を行う
       for(int i=0;i<DMT_curr2_ok;i++){
-        std::cout <<"更新ステップ(特徴点)"<< std::endl;
+        //std::cout <<"更新ステップ(特徴点)"<< std::endl;
         //観測方程式(信念分布の中心位置から見たLMまでの距離と角度)(理想推定)
         hu = (cv::Mat_<double>(2,1) <<
           sqrt((Est_RobotX-MT_curr2_world[i].z)*(Est_RobotX-MT_curr2_world[i].z) + (Est_RobotY-MT_curr2_world[i].x)*(Est_RobotY-MT_curr2_world[i].x)),
@@ -2384,8 +2384,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       Est_RobotY=EST_Robot.at<double>(1);
       Est_RobotTH=EST_Robot.at<double>(2);
 
-      temp_kosuu<<DMT_curr2_ok<<"\n";
-      temp_time<<ALLrealsec<<"\n";
+      //temp_kosuu<<DMT_curr2_ok<<"\n";
+      //temp_time<<ALLrealsec<<"\n";
 
       std::cout <<"Act_RobotX="<<Act_RobotX<< std::endl;
       std::cout <<"Act_RobotY="<<Act_RobotY<< std::endl;
@@ -2618,6 +2618,10 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       cv::swap(MT_curr2_Templ,  MT_prev_Templ);//マッチ座標
     }
 
+    temp_kosuu<<DMT_prev_ok<<"\n";
+    temp_time<<ALLrealsec<<"\n";
+
+
     robot_velocity.linear.x  = 0.0; // 並進速度の初期化
     robot_velocity.angular.z = 0.0; // 回転速度の初期化
     kaisu++;
@@ -2706,9 +2710,14 @@ int main(int argc,char **argv){
     //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
 
     //20211207V2廊下(直進12.0m,速度0.25)直線動作実験(研究室前スタート)
-    MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 3.0);//実測値(X:0.909,Y:11.770)
-    MarkerW[5]= (cv::Mat_<float>(3, 1) <<-0.932, 0.28, 7.754);
-    LX=12.0,VX=0.25,omegaZ=0,THZ=0,LY=0;
+    //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 3.0);//実測値(X:0.909,Y:11.770)
+    //MarkerW[5]= (cv::Mat_<float>(3, 1) <<-0.932, 0.28, 7.754);
+    //LX=12.0,VX=0.25,omegaZ=0,THZ=0,LY=0;
+
+    //2022-01-22廊下(直進10.0m,速度0.25)直線動作実験(研究室前スタート)
+    MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 3.0);//実測値(X:9.67,Y:0.10)
+    MarkerW[5]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 10.57);
+    LX=10.0,VX=0.25,omegaZ=0,THZ=0,LY=0;
 
 	ros::spin();//トピック更新待機
 			

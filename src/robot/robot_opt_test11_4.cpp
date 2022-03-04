@@ -240,6 +240,9 @@ ofstream Test_MT_C1_Wx0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Tes
 ofstream Test_MT_C1_Wy0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C1_Wy0.txt");//観測残差の確認
 ofstream Test_MT_kaisu0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_kaisu0.txt");//観測残差の確認
 
+ofstream temp_kosuu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/temp_kosuu.txt");
+ofstream temp_time("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/temple_time1.txt");
+
 geometry_msgs::Pose Des_Robot_pose;//ロボットtf(指令値)
 geometry_msgs::Pose Act_Robot_pose;//ロボットtf(観測値)
 geometry_msgs::Pose Est_Robot_pose;//ロボットtf(推定値)
@@ -698,7 +701,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
           cv::Rect roiEST(cv::Point(Est_pixel[i].x-cropx,Est_pixel[i].y-cropx), cv::Size(cropx*2, cropx*2));//線の中点を中心とした線の画像を切り取る
           EST_scope[i] = image(roiEST); // 切り出し画像
           cv::rectangle(img_dst, roiEST,cv::Scalar(0, 255, 255), 2);//マッチング予測範囲
-          cv::imshow("EST_scope", EST_scope[i]);//黄色の特徴点を中心としたクロップ画像
+          //cv::imshow("EST_scope", EST_scope[i]);//黄色の特徴点を中心としたクロップ画像
         }
         //左側
         else if(0<=Est_pixel[i].x&&Est_pixel[i].x<cropx){
@@ -1075,7 +1078,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
             MP_prev_world[EST_MP_ok]=MP_prev_world[i];
             MP_prev_Templ[EST_MP_ok]=MP_prev_Templ[i];
             cv::rectangle(img_dst, roiEST,cv::Scalar(0, 50, 255), 2);//マッチング予測範囲
-            cv::imshow("EST_MP_scope", EST_MP_scope[EST_MP_ok]);//黄色の特徴点を中心としたクロップ画像
+            //cv::imshow("EST_MP_scope", EST_MP_scope[EST_MP_ok]);//黄色の特徴点を中心としたクロップ画像
             EST_MP_ok=EST_MP_ok+1;//予測範囲が画面内のテンプレート数
           }
            //左側
@@ -1760,7 +1763,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
 
       //更新ステップ------------------------------------------------------------------
       //更新ステップはランドーマークの数だけ更新を行う
-      for(int i=0;i<markerIds.size();i++){
+      /*for(int i=0;i<markerIds.size();i++){
         std::cout <<"更新ステップ(マーカー)"<< std::endl;
         //観測方程式(信念分布の中心位置から見たLMまでの距離と角度)(理想推定)
         hu = (cv::Mat_<double>(2,1) <<
@@ -1833,7 +1836,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         kal_gainTH2<<K.at<double>(2,1)<<"\n";
         kal_gainTH3<<K.at<double>(2,2)<<"\n";
         kal_gain_time<<ALLrealsec<<"\n";
-      }
+      }*/
 
       //更新ステップは特徴点の数だけ更新を行う
       for(int i=0;i<DMP_curr2_ok;i++){
@@ -2093,7 +2096,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     // 画面表示
     cv::imshow(win_src, image);
     cv::imshow(win_dst, img_dst);
-    cv::imshow(win_dst2, img_dst2);
+    //cv::imshow(win_dst2, img_dst2);
     cv::imshow(win_master_temp, img_master_temp);
 
     cv::swap(image_curr, image_prev);// image_curr を image_prev に移す（交換する）
@@ -2161,6 +2164,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     endTime=startTime;//動作終了時刻取得
     endTimeV1=startTimeV1;//動作終了時刻取得
     endTimeM1=startTimeM1;//動作終了時刻取得
+    temp_kosuu<<DMP_prev_ok<<"\n";
+    temp_time<<ALLrealsec<<"\n"; 
     std::cout <<"tst5"<< std::endl;
 
 
@@ -2298,12 +2303,22 @@ int main(int argc,char **argv){
   //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
   //LX=2.0,VX=0.25,omegaZ=2.0,THZ=0.20,LY=5.0;
 
-  //2022-01-09-V1廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
+  //2022-01-09-V1ゼミ室前廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
   MarkerW[4]= (cv::Mat_<float>(3, 1) <<1.00, 0.28, 3.00);//実測値
   MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.62, 0.28, 2.90);
   MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.48, 0.28, 2.90);
   LX=2.5,VX=0.25,omegaZ=2.05,THZ=0.20,LY=5.0;
 
+  //20211207V1廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.25,直進5.0m,速度0.25)廊下回転動作実験
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<-0.35, 0.28, 2.95);//実測値(X:1.573,4.955)
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
+  //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+  //LX=2.0,VX=0.25,omegaZ=2,THZ=0.25,LY=5.0;
+
+  //2022-01-22廊下(直進10.0m,速度0.25)直線動作実験(研究室前スタート)
+  //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 3.0);//実測値(X:9.67,Y:0.10)
+  //MarkerW[5]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 10.57);
+  //LX=10.0,VX=0.25,omegaZ=0,THZ=0,LY=0;
 
 	ros::spin();//トピック更新待機
 			

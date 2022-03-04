@@ -1334,6 +1334,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                     TPCC_Templ[DTPC_ok] = img_src(roi2); // 切り出し画像
                     cv::rectangle(img_tate, roi2,cv::Scalar(255, 255, 255), 2);//テンプレート位置
                     cv::rectangle(img_tmp, roi2,cv::Scalar(255, 255, 255), 2);//テンプレート位置
+                    if(i==0){cv::rectangle(img_tmp, roi2,cv::Scalar(255, 255, 0), 2);}//テンプレート位置
                     //cv::rectangle(img_master_temp, cv::Point(tate_point_curr[i].x-template_size,tate_point_curr[i].y+template_size), 
                     //cv::Point(tate_point_curr[i].x+template_size,tate_point_curr[i].y-template_size), cv::Scalar(255, 255, 255), 2, cv::LINE_AA);//四角形を描写(白)
                     std::cout <<"縦線中点の画像座標(DTPC_ok)["<<DTPC_ok<<"]="<<tate_point_curr[DTPC_ok]<< std::endl;//縦線中点の座標(範囲制限後)
@@ -1374,6 +1375,17 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         cv::minMaxLoc(img_minmax1, &min_val1[i], &max_val1[i], &min_pt1[i], &max_pt1[i]);
         std::cout << "min_val1(白)["<<i<<"]=" << min_val1[i] << std::endl;//一致度が上がると値が小さくなる
         std::cout << "max_val1(白)["<<i<<"]=" << max_val1[i] << std::endl;
+          
+        if(0.75<max_val1[i]){//最小値がしきい値以下なら表示
+          cv::rectangle(img_dst, cv::Rect(max_pt1[i].x, max_pt1[i].y, img_template1.cols, img_template1.rows), cv::Scalar(0, 255, 0), 3);//白枠
+          cv::circle(img_dst, cv::Point(max_pt1[i].x+img_template1.cols/2, max_pt1[i].y+img_template1.rows/2), 5, cv::Scalar(0, 255, 0), -1);//テンプレートの中心座標
+          std::cout << "マッチング座標max_pt1["<<i<<"]=" << max_pt1[i] << std::endl;
+          //std::cout << "マッチング座標max_pt1["<<i<<"].y=" << max_pt1[i].y << std::endl;
+          MTPC[matchT_curr].x=max_pt1[i].x+img_template1.cols/2;
+          MTPC[matchT_curr].y=max_pt1[i].y+img_template1.rows/2;
+          MTTC[matchT_curr]=TPCP_Templ[i];//マッチングしたテンプレート画像(Matching_Tate_Templ_curr=MTTC)
+          std::cout <<"マッチングの中心座標["<<matchT_curr<<"]="<<MTPC[matchT_curr]<< std::endl;
+          matchT_curr=matchT_curr+1;//マッチングの中心座標個数
           if(i==0){
             min_match0<<min_val1[i]<<"\n";
             max_match0<<max_val1[i]<<"\n";
@@ -1430,16 +1442,6 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
             match7_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
             ALLtemp_time7<<ALLrealsec<<"\n";
             }
-        if(0.8<max_val1[i]){//最小値がしきい値以下なら表示
-          cv::rectangle(img_dst, cv::Rect(max_pt1[i].x, max_pt1[i].y, img_template1.cols, img_template1.rows), cv::Scalar(0, 255, 0), 3);//白枠
-          cv::circle(img_dst, cv::Point(max_pt1[i].x+img_template1.cols/2, max_pt1[i].y+img_template1.rows/2), 5, cv::Scalar(0, 255, 0), -1);//テンプレートの中心座標
-          std::cout << "マッチング座標max_pt1["<<i<<"]=" << max_pt1[i] << std::endl;
-          //std::cout << "マッチング座標max_pt1["<<i<<"].y=" << max_pt1[i].y << std::endl;
-          MTPC[matchT_curr].x=max_pt1[i].x+img_template1.cols/2;
-          MTPC[matchT_curr].y=max_pt1[i].y+img_template1.rows/2;
-          MTTC[matchT_curr]=TPCP_Templ[i];//マッチングしたテンプレート画像(Matching_Tate_Templ_curr=MTTC)
-          std::cout <<"マッチングの中心座標["<<matchT_curr<<"]="<<MTPC[matchT_curr]<< std::endl;
-          matchT_curr=matchT_curr+1;//マッチングの中心座標個数
         }//if(min_val1[i]<max_val1[i]*0.05)→end(テンプレートマッチング)
       }//for(int i=0;i<DTPP_ok;i++)→end (範囲予測+テンプレートマッチング)
 
@@ -1520,11 +1522,83 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
           cv::minMaxLoc(img_minmax1, &min_val1[i], &max_val1[i], &min_pt1[i], &max_pt1[i]);
           std::cout << "min_val1(白)["<<i<<"]=" << min_val1[i] << std::endl;//一致度が上がると値が小さくなる
           std::cout << "max_val1(白)["<<i<<"]=" << max_val1[i] << std::endl;
-          if(i==0){
+          /*if(i==0){
             min_match0<<min_val1[i]<<"\n";
             max_match0<<max_val1[i]<<"\n";
             match0_pixel_x<<max_pt1[i].x+img_template1.cols/2<<"\n";
             match0_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
+            cv::rectangle(img_dst, cv::Rect(max_pt1[i].x, max_pt1[i].y, img_template1.cols, img_template1.rows), cv::Scalar(255, 255, 0), 3);//白枠
+            ALLtemp_time0<<ALLrealsec<<"\n";
+            }
+          else if(i==1){
+            min_match1<<min_val1[i]<<"\n";
+            max_match1<<max_val1[i]<<"\n";
+            match1_pixel_x<<max_pt1[i].x+img_template1.cols/2<<"\n";
+            match1_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
+            ALLtemp_time1<<ALLrealsec<<"\n";
+            }
+          else if(i==2){
+            min_match2<<min_val1[i]<<"\n";
+            max_match2<<max_val1[i]<<"\n";
+            match2_pixel_x<<max_pt1[i].x+img_template1.cols/2<<"\n";
+            match2_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
+            ALLtemp_time2<<ALLrealsec<<"\n";
+            }
+          else if(i==3){
+            min_match3<<min_val1[i]<<"\n";
+            max_match3<<max_val1[i]<<"\n";
+            match3_pixel_x<<max_pt1[i].x+img_template1.cols/2<<"\n";
+            match3_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
+            ALLtemp_time3<<ALLrealsec<<"\n";
+            }
+          else if(i==4){
+            min_match4<<min_val1[i]<<"\n";
+            max_match4<<max_val1[i]<<"\n";
+            match4_pixel_x<<max_pt1[i].x+img_template1.cols/2<<"\n";
+            match4_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
+            ALLtemp_time4<<ALLrealsec<<"\n";
+            }
+          else if(i==5){
+            min_match5<<min_val1[i]<<"\n";
+            max_match5<<max_val1[i]<<"\n";
+            match5_pixel_x<<max_pt1[i].x+img_template1.cols/2<<"\n";
+            match5_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
+            ALLtemp_time5<<ALLrealsec<<"\n";
+            }
+          else if(i==6){
+            min_match6<<min_val1[i]<<"\n";
+            max_match6<<max_val1[i]<<"\n";
+            match6_pixel_x<<max_pt1[i].x+img_template1.cols/2<<"\n";
+            match6_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
+            ALLtemp_time6<<ALLrealsec<<"\n";
+            }
+          else if(i==7){
+            min_match7<<min_val1[i]<<"\n";
+            max_match7<<max_val1[i]<<"\n";
+            match7_pixel_x<<max_pt1[i].x+img_template1.cols/2<<"\n";
+            match7_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
+            ALLtemp_time7<<ALLrealsec<<"\n";
+            }*/
+          if(0.75<max_val1[i]){//最小値がしきい値以下なら表示
+            cv::rectangle(img_dst, cv::Rect(max_pt1[i].x, max_pt1[i].y, img_template1.cols, img_template1.rows), cv::Scalar(0, 255, 0), 3);//白枠
+            cv::circle(img_dst, cv::Point(max_pt1[i].x+img_template1.cols/2, max_pt1[i].y+img_template1.rows/2), 5, cv::Scalar(0, 255, 0), -1);//テンプレートの中心座標
+            std::cout << "マッチング座標max_pt1["<<i<<"]=" << max_pt1[i] << std::endl;
+            //std::cout << "マッチング座標max_pt1["<<i<<"].y=" << max_pt1[i].y << std::endl;
+            MTPP[matchT_prev].x=max_pt1[i].x+img_template1.cols/2;
+            MTPP[matchT_prev].y=max_pt1[i].y+img_template1.rows/2;
+            MTTP[matchT_prev]=MT_prev_Templ[i];//マッチングしたテンプレート画像(Matching_Tate_Templ_curr=MTTC)
+            std::cout <<"マッチングの中心座標["<<matchT_prev<<"]="<<MTPP[matchT_prev]<< std::endl;
+            MT_prev_pixel[matchT_prev]=MT_prev_pixel[i];
+            MT_prev_camera[matchT_prev]=MT_prev_camera[i];
+            MT_prev_Templ[matchT_prev]=MT_prev_Templ[i];
+            cv::line(img_dst,cv::Point(MTPP[matchT_prev]),cv::Point(MT_prev_pixel[matchT_prev]),cv::Scalar(0,255,255), 3, cv::LINE_AA);
+            matchT_prev=matchT_prev+1;//マッチングの中心座標個数
+              if(i==0){
+            min_match0<<min_val1[i]<<"\n";
+            max_match0<<max_val1[i]<<"\n";
+            match0_pixel_x<<max_pt1[i].x+img_template1.cols/2<<"\n";
+            match0_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
+            cv::rectangle(img_dst, cv::Rect(max_pt1[i].x, max_pt1[i].y, img_template1.cols, img_template1.rows), cv::Scalar(255, 255, 0), 3);//白枠
             ALLtemp_time0<<ALLrealsec<<"\n";
             }
           else if(i==1){
@@ -1576,24 +1650,11 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
             match7_pixel_y<<max_pt1[i].y+img_template1.rows/2<<"\n";
             ALLtemp_time7<<ALLrealsec<<"\n";
             }
-          if(0.8<max_val1[i]){//最小値がしきい値以下なら表示
-            cv::rectangle(img_dst, cv::Rect(max_pt1[i].x, max_pt1[i].y, img_template1.cols, img_template1.rows), cv::Scalar(0, 255, 0), 3);//白枠
-            cv::circle(img_dst, cv::Point(max_pt1[i].x+img_template1.cols/2, max_pt1[i].y+img_template1.rows/2), 5, cv::Scalar(0, 255, 0), -1);//テンプレートの中心座標
-            std::cout << "マッチング座標max_pt1["<<i<<"]=" << max_pt1[i] << std::endl;
-            //std::cout << "マッチング座標max_pt1["<<i<<"].y=" << max_pt1[i].y << std::endl;
-            MTPP[matchT_prev].x=max_pt1[i].x+img_template1.cols/2;
-            MTPP[matchT_prev].y=max_pt1[i].y+img_template1.rows/2;
-            MTTP[matchT_prev]=MT_prev_Templ[i];//マッチングしたテンプレート画像(Matching_Tate_Templ_curr=MTTC)
-            std::cout <<"マッチングの中心座標["<<matchT_prev<<"]="<<MTPP[matchT_prev]<< std::endl;
-            MT_prev_pixel[matchT_prev]=MT_prev_pixel[i];
-            MT_prev_camera[matchT_prev]=MT_prev_camera[i];
-            MT_prev_Templ[matchT_prev]=MT_prev_Templ[i];
-            cv::line(img_dst,cv::Point(MTPP[matchT_prev]),cv::Point(MT_prev_pixel[matchT_prev]),cv::Scalar(0,255,255), 3, cv::LINE_AA);
-            matchT_prev=matchT_prev+1;//マッチングの中心座標個数
           }//if(min_val1[i]<max_val1[i]*0.05)→end(テンプレートマッチング)
           else{
               std::cout << "マッチしない["<<i<<"]((0.99<max_val1["<<i<<"])="<<0.99<<"<"<<max_val1[i]<< std::endl;
           }
+        
         }//for(int i=0;i<DTPP_ok;i++)→end (範囲予測+テンプレートマッチング)
 
         temp_kosuu<<matchT_prev<<"\n";

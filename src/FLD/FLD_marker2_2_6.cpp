@@ -1,9 +1,3 @@
-//線検出(FLD)→Depth取得不可能な線を削除
-//まずナナメの線のみを取り出し、取り出した後のナナメの線が含まれていないグループを作る
-//その後作成したグループからタテ、ヨコ線の検出を行う
-//20210908 青線がばーって表示されるバグを直したが、kskの個数が０個になるとSegmentationFolutになるのが確認できた（たまに起こる）
-//そのためkskの対策が必要
-
 //rosのヘッダ
 //#define _CRT_SECURE_NO_WARNINGS
 #include <ros/ros.h>
@@ -22,22 +16,19 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/ximgproc/fast_line_detector.hpp>//FLD
-#include <Eigen/Dense>
+#include <Eigen/Dense>//Eigrn用
 #include <opencv2/aruco/charuco.hpp>//マーカー検出
 #include <time.h>//処理の時間を出力する
-#include <sys/time.h>
-
+#include <sys/time.h>//C言語の時間取得用
 #include <geometry_msgs/PoseStamped.h>//tf
 #include <tf/transform_broadcaster.h>//tf
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <opencv2/aruco/charuco.hpp>//マーカー検出
 #include <nav_msgs/Path.h>//経路情報を記録する
-
 #include <geometry_msgs/Twist.h>//ロボットの指令値(速度)用ヘッダー
-#include <nav_msgs/Odometry.h>
-#include<fstream>
-
+#include <nav_msgs/Odometry.h>//オドメトリーデータ用
+#include<fstream>//ファイル出力用
 
 ros::Subscriber sub;//データをsubcribeする奴
 ros::Subscriber odom_sub;//ロボットオドメトリー受信用
@@ -67,7 +58,6 @@ std::string win_dst2 = "dst2";//オプティカルフローの動き画像
 //std::string win_depth4 = "depth";//クロップされたdepth画像
 std::string win_img_1 = "img_1";//カメラ画像
 std::string win_graph = "graph";//グラフ作成
-
 std::string win_tate = "tate";//縦線関連の画像表示用
 
 
@@ -75,6 +65,7 @@ using namespace std;
 using namespace cv;
 using Eigen::MatrixXd;
 
+//初期定義--------------------------------------------------------------------------------------------------------
 int linesu=400;
 int kaisu=0,kaisuM1=0,kaisuV1=0;
 // reset == TRUE のとき特徴点検出を行う
@@ -169,7 +160,6 @@ int EST_MT_ok=0;//画面内のテンプレート数
 double CameraLMT[600];
 cv::Mat Zu_T[600];//センサーの観測値(仮)
 
-
 geometry_msgs::Twist robot_velocity;//指令速度
 nav_msgs::Odometry robot_odometry;//ロボットのオドメトリー
 
@@ -193,54 +183,51 @@ nav_msgs::Path Est_path;//カメラ経路表示設定
 geometry_msgs::PoseStamped Des_pose;//ロボット姿勢(指令値)
 geometry_msgs::PoseStamped Act_pose;//ロボット姿勢(観測値)
 geometry_msgs::PoseStamped Est_pose;//ロボット姿勢(推定値)
+//--------------------------------------------------------------------------------------------------------------------------
 
-ofstream est_kaisu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/est_kaisu.txt");//更新回数と推定結果との関連性
-ofstream est_robotxx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/est_robotxx.txt");//更新回数と推定結果との関連性
-ofstream est_robotyy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/est_robotyy.txt");//更新回数と推定結果との関連性
-ofstream est_robotthth("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/est_robotthth.txt");//更新回数と推定結果との関連性
+//システム出力データ(ここで出力ファイルの指定をしている)--------------------------------------------------------------------
+ofstream est_kaisu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/est_kaisu.txt");//推定結果取得時間
+ofstream est_robotxx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/est_robotxx.txt");//ロボットの推定位置X
+ofstream est_robotyy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/est_robotyy.txt");//ロボットの推定位置Y
+ofstream est_robotthth("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/est_robotthth.txt");//ロボットの推定姿勢θ
+ofstream act_robotxx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/act_robotxx.txt");//ロボットの指令位置X
+ofstream act_robotyy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/act_robotyy.txt");//ロボットの指令位置Y
+ofstream act_robotthth("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/act_robotthth.txt");//ロボットの指令位置θ
 
-ofstream act_robotxx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/act_robotxx.txt");//更新回数と推定結果との関連性
-ofstream act_robotyy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/act_robotyy.txt");//更新回数と推定結果との関連性
-ofstream act_robotthth("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/act_robotthth.txt");//更新回数と推定結果との関連性
+ofstream MP_kaisu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_kaisu.txt");//座標取得時間
+ofstream MC_worldx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MC_worldx.txt");//マーカーの世界座標X
+ofstream MC_worldy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MC_worldy.txt");//マーカーの世界座標Y
+ofstream MP_worldx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_worldx.txt");//特徴線の世界座標X
+ofstream MP_worldy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_worldy.txt");//特徴線の世界座標Y
+ofstream MC_camerax("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MC_camerax.txt");//マーカーのカメラ座標X
+ofstream MC_cameray("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MC_cameray.txt");//マーカーのカメラ座標Y
+ofstream MP_camerax("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_camerax.txt");//特徴線のカメラ座標X
+ofstream MP_cameray("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_cameray.txt");//特徴線のカメラ座標Y
 
-ofstream MP_kaisu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_kaisu.txt");//自己位置推定とマーカーの世界座標の関係確認
-ofstream MC_worldx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MC_worldx.txt");//自己位置推定とマーカーの世界座標の関係確認
-ofstream MC_worldy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MC_worldy.txt");//自己位置推定とマーカーの世界座標の関係確認
-ofstream MP_worldx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_worldx.txt");//自己位置推定と特徴点の世界座標の関係確認
-ofstream MP_worldy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_worldy.txt");//自己位置推定と特徴点の世界座標の関係確認
-
-ofstream MC_camerax("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MC_camerax.txt");//自己位置推定とマーカーのカメラ座標の関係確認
-ofstream MC_cameray("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MC_cameray.txt");//自己位置推定とマーカーのカメラ座標の関係確認
-ofstream MP_camerax("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_camerax.txt");//自己位置推定と特徴点のカメラ座標の関係確認
-ofstream MP_cameray("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/MP_cameray.txt");//自己位置推定と特徴点のカメラ座標の関係確認
-
-ofstream kal_covX1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covX1.txt");//誤差共分散の値分析
-ofstream kal_covX2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covX2.txt");//誤差共分散の値分析
-ofstream kal_covX3("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covX3.txt");//誤差共分散の値分析
+ofstream kal_cov_time("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_cov_time.txt");//誤差共分散の値分析(取得時間)
+ofstream kal_covX1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covX1.txt");//誤差共分散の値分析(Σxx)
+ofstream kal_covX2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covX2.txt");//誤差共分散の値分析(Σxy)
+ofstream kal_covX3("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covX3.txt");//誤差共分散の値分析(Σxθ)
 ofstream kal_covY1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covY1.txt");//誤差共分散の値分析
-ofstream kal_covY2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covY2.txt");//誤差共分散の値分析
+ofstream kal_covY2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covY2.txt");//誤差共分散の値分析(Σyy)
 ofstream kal_covY3("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covY3.txt");//誤差共分散の値分析
 ofstream kal_covTH1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covTH1.txt");//誤差共分散の値分析
 ofstream kal_covTH2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covTH2.txt");//誤差共分散の値分析
-ofstream kal_covTH3("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covTH3.txt");//誤差共分散の値分析
-ofstream kal_cov_time("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_cov_time.txt");//誤差共分散の値分析
+ofstream kal_covTH3("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_covTH3.txt");//誤差共分散の値分析(Σθθ)
 
-ofstream kal_gainX1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainX1.txt");//カルマンゲインの値分析
-ofstream kal_gainX2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainX2.txt");//カルマンゲインの値分析
-ofstream kal_gainX3("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainX3.txt");//カルマンゲインの値分析
-ofstream kal_gainY1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainY1.txt");//カルマンゲインの値分析
-ofstream kal_gainY2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainY2.txt");//カルマンゲインの値分析
-ofstream kal_gainY3("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainY3.txt");//カルマンゲインの値分析
-ofstream kal_gainTH1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainTH1.txt");//カルマンゲインの値分析
-ofstream kal_gainTH2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainTH2.txt");//カルマンゲインの値分析
-ofstream kal_gainTH3("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainTH3.txt");//カルマンゲインの値分析
-ofstream kal_gain_time("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gain_time.txt");//カルマンゲインの値分析
+ofstream kal_gain_time("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gain_time.txt");//カルマンゲインの値分析(取得時間)
+ofstream kal_gainX1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainX1.txt");//カルマンゲインの値分析(距離成分)
+ofstream kal_gainX2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainX2.txt");//カルマンゲインの値分析(角度成分)
+ofstream kal_gainY1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainY1.txt");//カルマンゲインの値分析(距離成分)
+ofstream kal_gainY2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainY2.txt");//カルマンゲインの値分析(角度成分)
+ofstream kal_gainTH1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainTH1.txt");//カルマンゲインの値分析(距離成分)
+ofstream kal_gainTH2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kal_gainTH2.txt");//カルマンゲインの値分析(角度成分)
+ofstream kansoku_Zu1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kansoku_Zu1.txt");//観測残差の確認(観測距離)
+ofstream kansoku_Zu2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kansoku_Zu2.txt");//観測残差の確認(観測角度)
+ofstream kansoku_hu1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kansoku_hu1.txt");//観測残差の確認(推定距離)
+ofstream kansoku_hu2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kansoku_hu2.txt");//観測残差の確認(推定角度)
 
-ofstream kansoku_Zu1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kansoku_Zu1.txt");//観測残差の確認
-ofstream kansoku_Zu2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kansoku_Zu2.txt");//観測残差の確認
-ofstream kansoku_hu1("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kansoku_hu1.txt");//観測残差の確認
-ofstream kansoku_hu2("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/kansoku_hu2.txt");//観測残差の確認
-
+ofstream Test_MT_kaisu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_kaisu.txt");//失敗対策確認用(取得時間)
 ofstream Test_MT_C2_Cx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C2_Cx.txt");//失敗対策確認用
 ofstream Test_MT_C2_Cy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C2_Cy.txt");//失敗対策確認用
 ofstream Test_MT_C1_Cx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C1_Cx.txt");//失敗対策確認用
@@ -249,8 +236,8 @@ ofstream Test_MT_C2_Wx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test
 ofstream Test_MT_C2_Wy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C2_Wy.txt");//失敗対策確認用
 ofstream Test_MT_C1_Wx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C1_Wx.txt");//失敗対策確認用
 ofstream Test_MT_C1_Wy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C1_Wy.txt");//失敗対策確認用
-ofstream Test_MT_kaisu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_kaisu.txt");//失敗対策確認用
 
+ofstream Test0_MT_kaisu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test0_MT_kaisu.txt");//失敗対策確認用(取得時間)
 ofstream Test0_MT_C2_Cx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test0_MT_C2_Cx.txt");//失敗対策確認用
 ofstream Test0_MT_C2_Cy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test0_MT_C2_Cy.txt");//失敗対策確認用
 ofstream Test0_MT_C1_Cx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test0_MT_C1_Cx.txt");//失敗対策確認用
@@ -259,9 +246,8 @@ ofstream Test0_MT_C2_Wx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Tes
 ofstream Test0_MT_C2_Wy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test0_MT_C2_Wy.txt");//失敗対策確認用
 ofstream Test0_MT_C1_Wx("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test0_MT_C1_Wx.txt");//失敗対策確認用
 ofstream Test0_MT_C1_Wy("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test0_MT_C1_Wy.txt");//失敗対策確認用
-ofstream Test0_MT_kaisu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test0_MT_kaisu.txt");//失敗対策確認用
 
-
+ofstream Test_MT_kaisu0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_kaisu0.txt");//失敗対策確認用(取得時間)
 ofstream Test_MT_C2_Cx0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C2_Cx0.txt");//失敗対策確認用
 ofstream Test_MT_C2_Cy0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C2_Cy0.txt");//失敗対策確認用
 ofstream Test_MT_C1_Cx0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C1_Cx0.txt");//失敗対策確認用
@@ -270,94 +256,102 @@ ofstream Test_MT_C2_Wx0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Tes
 ofstream Test_MT_C2_Wy0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C2_Wy0.txt");//失敗対策確認用
 ofstream Test_MT_C1_Wx0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C1_Wx0.txt");//失敗対策確認用
 ofstream Test_MT_C1_Wy0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_C1_Wy0.txt");//失敗対策確認用
-ofstream Test_MT_kaisu0("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/Test_MT_kaisu0.txt");//失敗対策確認用
 
-ofstream temp_kosuu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/temp_kosuu.txt");
-ofstream temp_time("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/temple_time1.txt");
-
-
+ofstream temp_time("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/temple_time1.txt");//取得時間
+ofstream temp_kosuu("/home/fuji/catkin_ws/src/Struct_SLAM/src/robot/date/temp_kosuu.txt");//特徴線の個数
+//------------------------------------------------------------------------------------------------------------------------------------------------
 
 //コールバック関数
 void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::ConstPtr& rgb_msg,const sensor_msgs::Image::ConstPtr& depth_msg)
 {
-    //サンプリング時間取得(C言語の方法)(こっちのほうが正確らしい)
-    gettimeofday(&startTime, NULL);// 開始時刻取得
-    if(time0 != false){
-      time_t diffsec = difftime(startTime.tv_sec,endTime.tv_sec);    // 秒数の差分を計算
-      suseconds_t diffsub = startTime.tv_usec - endTime.tv_usec;      // マイクロ秒部分の差分を計算
-      realsec = diffsec+diffsub*1e-6;                          // 実時間を計算
-      ALLrealsec=ALLrealsec+realsec;
-      printf("処理の時間=%f\n", realsec);
-      printf("処理時間合計=%f\n", ALLrealsec);
-    }
+  //サンプリング時間取得(C言語の方法)(こっちのほうが正確らしい)
+  gettimeofday(&startTime, NULL);// 開始時刻取得
+  if(time0 != false){
+    time_t diffsec = difftime(startTime.tv_sec,endTime.tv_sec);    // 秒数の差分を計算
+    suseconds_t diffsub = startTime.tv_usec - endTime.tv_usec;      // マイクロ秒部分の差分を計算
+    realsec = diffsec+diffsub*1e-6;                          // 実時間を計算
+    ALLrealsec=ALLrealsec+realsec;
+    printf("処理の時間=%f\n", realsec);
+    printf("処理時間合計=%f\n", ALLrealsec);
+  }
 
 	//変数宣言
 	cv_bridge::CvImagePtr bridgeImage;//クラス::型//cv_brigeは画像変換するとこ
-    cv_bridge::CvImagePtr bridgedepthImage;//クラス::型//cv_brigeは画像変換するとこ
-    cv::Mat RGBimage;//opencvの画像
-    cv::Mat depthimage;//opencvの画像
-	cv::Mat image;//opencvの画像
+  cv_bridge::CvImagePtr bridgedepthImage;//クラス::型//cv_brigeは画像変換するとこ
+  cv::Mat depthimage;//Depth画像
+	cv::Mat image;//RGB画像
 	ROS_INFO("callback_functionが呼ばれたよ");
 	
-    try{//MAT形式変換
-       bridgeImage=cv_bridge::toCvCopy(rgb_msg, sensor_msgs::image_encodings::BGR8);//MAT形式に変える
-       ROS_INFO("callBack");//printと秒数表示
-    }
+  //cv_bridge処理-----------------------------------------------------------------------------------------------
+  //トピックデータのままでは画像処理ができないのでcv_brigeを用いてcv::Mat形式に変換を行う
+  try{//MAT形式変換
+     bridgeImage=cv_bridge::toCvCopy(rgb_msg, sensor_msgs::image_encodings::BGR8);//MAT形式に変える
+     ROS_INFO("callBack");//printと秒数表示
+  }
 	//エラー処理
-    catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
-        std::cout<<"depth_image_callback Error \n";
-        ROS_ERROR("Could not convert from '%s' to 'BGR8'.",rgb_msg->encoding.c_str());
-        return ;
-    }
-     try{//MAT形式変換
-       bridgedepthImage=cv_bridge::toCvCopy(depth_msg, sensor_msgs::image_encodings::TYPE_32FC1);//MAT形式に変える
-       ROS_INFO("callBack");}//printと秒数表示
-    
+  catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
+      std::cout<<"depth_image_callback Error \n";
+      ROS_ERROR("Could not convert from '%s' to 'BGR8'.",rgb_msg->encoding.c_str());
+      return ;
+  }
+  try{//MAT形式変換
+    bridgedepthImage=cv_bridge::toCvCopy(depth_msg, sensor_msgs::image_encodings::TYPE_32FC1);//MAT形式に変える
+    ROS_INFO("callBack");
+  }
 	//エラー処理
-    catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
-        std::cout<<"depth_image_callback Error \n";
-        ROS_ERROR("Could not convert from '%s' to '32FC1'.",depth_msg->encoding.c_str());
-        return ;}
+  catch(cv_bridge::Exception& e) {//エラー処理(失敗)成功ならスキップ
+    std::cout<<"depth_image_callback Error \n";
+    ROS_ERROR("Could not convert from '%s' to '32FC1'.",depth_msg->encoding.c_str());
+  return ;}
 
-    cv::Mat img_src = bridgeImage->image.clone();//image変数に変換した画像データを代入
-    cv::Mat img_depth = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
-        //ここに処理項目
-    cv::Mat img_gray,img_gray2,img_edge,img_dst,img_fld,img_line2,img_line3,img_line4;
+  cv::Mat img_src = bridgeImage->image.clone();//image変数に変換した画像データを代入
+  cv::Mat img_depth = bridgedepthImage->image.clone();//image変数に変換した画像データを代入
+  //-----------------------------------------------------------------------------------------------
 
-    //ラインだけの画像を作るために単色で塗りつぶした画像を用意する
-    img_fld = img_src.clone();
-    img_fld = cv::Scalar(255,255,255);
-    img_line2 = img_src.clone();
-    img_line2 = cv::Scalar(255,255,255);
-    img_line3 = img_src.clone();
-    img_line3 = cv::Scalar(255,255,255);
-    img_line4 = img_src.clone();
-    img_line4 = cv::Scalar(255,255,255);
-    img_FLD_TY = img_src.clone();
-    img_FLD_TY = cv::Scalar(255,255,255);
-    img_FLD_T = img_src.clone();
-    img_FLD_T = cv::Scalar(255,255,255);
-    img_FLD_Y = img_src.clone();
-    img_FLD_Y = cv::Scalar(255,255,255);
-    img_tate = img_src.clone();
+  cv::Mat img_gray,img_dst,img_fld,img_line2,img_line3,img_line4;//初期定義
 
-    img_graph= img_src.clone();
-    img_graph= cv::Scalar(255,255,255);
-    cv::line(img_graph,cv::Point(0,480),cv::Point(640,480),cv::Scalar(0,0,0), 3, cv::LINE_AA);//X軸 
-    cv::line(img_graph,cv::Point(0,480),cv::Point(0,0),cv::Scalar(0,0,0), 3, cv::LINE_AA);//Y軸 
-    //cv::line(img_graph,cv::Point(180*3,0),cv::Point(180*3,480),cv::Scalar(0,0,0), 1, cv::LINE_AA);//180度(180*3)
-    //cv::line(img_graph,cv::Point(170*3,0),cv::Point(170*3,480),cv::Scalar(0,0,255), 1, cv::LINE_AA);//180度(180*3)
-    //cv::line(img_graph,cv::Point(100*3,0),cv::Point(100*3,480),cv::Scalar(0,255,0), 1, cv::LINE_AA);//180度(180*3)
-    cv::line(img_graph,cv::Point(90*6,0),cv::Point(90*6,480),cv::Scalar(0,0,0), 1, cv::LINE_AA);//180度(180*3)
-    cv::line(img_graph,cv::Point(80*6,0),cv::Point(80*6,480),cv::Scalar(0,255,0), 1, cv::LINE_AA);//180度(180*3)
-    cv::line(img_graph,cv::Point(45*6,0),cv::Point(45*6,480),cv::Scalar(0,0,0), 1, cv::LINE_AA);//180度(180*3)
-    cv::line(img_graph,cv::Point(10*6,0),cv::Point(10*6,480),cv::Scalar(0,0,255), 1, cv::LINE_AA);//180度(180*3)
+  //ラインだけの画像を作るために単色で塗りつぶした画像を用意する
+  img_fld = img_src.clone();
+  img_fld = cv::Scalar(255,255,255);
+  img_line2 = img_src.clone();
+  img_line2 = cv::Scalar(255,255,255);
+  img_line3 = img_src.clone();
+  img_line3 = cv::Scalar(255,255,255);
+  img_line4 = img_src.clone();
+  img_line4 = cv::Scalar(255,255,255);
+  img_FLD_TY = img_src.clone();
+  img_FLD_TY = cv::Scalar(255,255,255);
+  img_FLD_T = img_src.clone();
+  img_FLD_T = cv::Scalar(255,255,255);
+  img_FLD_Y = img_src.clone();
+  img_FLD_Y = cv::Scalar(255,255,255);
+  img_graph= img_src.clone();
+  img_graph= cv::Scalar(255,255,255);
+  img_tate = img_src.clone();
+
+  //線の描写--------------------------------------------------------------------------------------
+  //角度のグラフを作成(ここは消してもいい)
+  //グラフは横軸がdegのグラフ
+  cv::line(img_graph,cv::Point(0,480),cv::Point(640,480),cv::Scalar(0,0,0), 3, cv::LINE_AA);//X軸 
+  cv::line(img_graph,cv::Point(0,480),cv::Point(0,0),cv::Scalar(0,0,0), 3, cv::LINE_AA);//Y軸 
+  //cv::line(img_graph,cv::Point(180*3,0),cv::Point(180*3,480),cv::Scalar(0,0,0), 1, cv::LINE_AA);//180度(180*3)
+  //cv::line(img_graph,cv::Point(170*3,0),cv::Point(170*3,480),cv::Scalar(0,0,255), 1, cv::LINE_AA);//180度(180*3)
+  //cv::line(img_graph,cv::Point(100*3,0),cv::Point(100*3,480),cv::Scalar(0,255,0), 1, cv::LINE_AA);//180度(180*3)
+  cv::line(img_graph,cv::Point(90*6,0),cv::Point(90*6,480),cv::Scalar(0,0,0), 1, cv::LINE_AA);//180度(180*3)
+  cv::line(img_graph,cv::Point(80*6,0),cv::Point(80*6,480),cv::Scalar(0,255,0), 1, cv::LINE_AA);//180度(180*3)
+  cv::line(img_graph,cv::Point(45*6,0),cv::Point(45*6,480),cv::Scalar(0,0,0), 1, cv::LINE_AA);//180度(180*3)
+  cv::line(img_graph,cv::Point(10*6,0),cv::Point(10*6,480),cv::Scalar(0,0,255), 1, cv::LINE_AA);//180度(180*3)
     
-    img_src.copyTo(img_dst);
-    img_src.copyTo(img_dst2);
-    cv::cvtColor(img_src, img_gray, cv::COLOR_RGB2GRAY);
+  img_src.copyTo(img_dst);
+  img_src.copyTo(img_dst2);
+  cv::cvtColor(img_src, img_gray, cv::COLOR_RGB2GRAY);//グレー画像の作成
 
-   //マーカー検出+外部パラメータ推定-------------------------------------------------------------------------------------------  
+
+  //マーカー検出------------------------------------------------------------------------------------------  
+  //ここではArucoマーカーを用いてマーカーの検出を行う
+  //マーカーの全体数ALLMarkerは事前に決める
+  //検出されたマーカー個数はmarkerIds.size()
+
   //カメラ内部パラメータ読み込み
   cv::Mat cameraMatrix;
   cv::FileStorage fs;
@@ -407,7 +401,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     }
   }
 
-  //マーカー観測可能
+  //マーカー観測可能な場合
   if (markerIds.size() > 0) {
     cv::aruco::drawDetectedMarkers(img_dst, markerCorners, markerIds);//マーカー位置を描画
     cv::aruco::drawDetectedMarkers(img_tate, markerCorners, markerIds);//マーカー位置を描画
@@ -460,6 +454,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         std::cout <<"CameraLM["<<markerIds.at(i)<<"][1]="<<CameraLM[markerIds.at(i)][1]<< std::endl;//マーカーまでの角度
         //camera_robot<< "ALLrealsec=" <<ALLrealsec<< " ,realsec=" <<realsec<<" ,CameraLM["<<markerIds.at(i)<<"][0]=" <<CameraLM[markerIds.at(i)][0]<<",CameraLM["<<markerIds.at(i)<<"][1]=" <<CameraLM[markerIds.at(i)][1]<<"\n";
 
+        //カルマンフィルタの観測残差確認用
         Zu[markerIds.at(i)] = (cv::Mat_<double>(2,1) <<
           CameraLM[markerIds.at(i)][0],
           CameraLM[markerIds.at(i)][1]);
@@ -469,27 +464,30 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
   else{std::cout <<"マーカー観測不能"<< std::endl;}
   //ここまでがマーカー観測----------------------------------------------
 
-    //FLD変換
-    std::vector<cv::Vec4f> lines_fld;
-    std::vector<cv::Vec4f> lines_std;
-    
+  //ここから線検出--------------------------------------------------------------------------------------------------------------
+  //線検出にはFLDを使用
+  //線検出処理後、斜めの線のみを除去してから縦線と横線を求める
+
+    //FLD----------------------------------------------------------------------------
+    std::vector<cv::Vec4f> lines_fld;//初期定義
+    std::vector<cv::Vec4f> lines_std;//初期定義
+  
     cv::Ptr<cv::ximgproc::FastLineDetector> fld =  cv::ximgproc::createFastLineDetector();//特徴線クラスオブジェクトを作成
     fld->detect( img_gray, lines_fld);//特徴線検索
     fld->detect( img_gray, lines_std);//特徴線検索
-
+    
     //FLDの線描写
     for(int i = 0; i < lines_fld.size(); i++){
        //cv::line(img_dst,cv::Point(lines[i][0],lines[i][1]),cv::Point(lines[i][2],lines[i][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);  
        cv::line(img_fld,cv::Point(lines_fld[i][0],lines_fld[i][1]),cv::Point(lines_fld[i][2],lines_fld[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA); 
        cv::line(img_line2,cv::Point(lines_fld[i][0],lines_fld[i][1]),cv::Point(lines_fld[i][2],lines_fld[i][3]),cv::Scalar(0,0,255), 1.5, cv::LINE_AA);
     }
-    std::cout <<"lines_fld.size()="<<lines_fld.size()<< std::endl;
+    std::cout <<"lines_fld.size()="<<lines_fld.size()<< std::endl;//線の取得数
+    //--------------------------------------------------------------------------------
 
-    cv::cvtColor(img_fld, img_gray2, cv::COLOR_RGB2GRAY);
-    cv::Canny(img_gray2, img_edge, 125, 255);
-
-    double lines2[lines_fld.size()][4],theta0,theta90;
-    float dep1[lines_fld.size()],dep2[lines_fld.size()];
+    //線の角度を求める---------------------------------------------------------------------
+    double lines2[lines_fld.size()][4],theta0,theta90;//初期定義
+    float dep1[lines_fld.size()],dep2[lines_fld.size()];//初期定義
 
     //Y軸との角度(詳しくは2月の研究ノート)
     theta0=M_PI-atan2((200-0),(100-100));//水平(θ=π/2=1.5708)
@@ -502,16 +500,17 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         dep1[i]= img_depth.at<float>(cv::Point(lines_fld[i][0],lines_fld[i][1]));//点の三次元距離データ取得//20210908ここでDepth情報を取得する必要はない気がする
         dep2[i]= img_depth.at<float>(cv::Point(lines_fld[i][2],lines_fld[i][3]));
         if(dep1[i]>0 && dep2[i]>0){//dep1とdep2が0より大きい時に実行する。(距離データの損失を考慮)
-            lines2[ksk][0]=lines_fld[i][0];//ここで距離０を除いてる
-            lines2[ksk][1]=lines_fld[i][1];
-            lines2[ksk][2]=lines_fld[i][2];
-            lines2[ksk][3]=lines_fld[i][3];
-            dep1[ksk]=dep1[i];
-            dep2[ksk]=dep2[i];
-            ksk=ksk+1;//距離データを正しく持つ線のみを取得
+          lines2[ksk][0]=lines_fld[i][0];//ここで距離０を除いてる
+          lines2[ksk][1]=lines_fld[i][1];
+          lines2[ksk][2]=lines_fld[i][2];
+          lines2[ksk][3]=lines_fld[i][3];
+          dep1[ksk]=dep1[i];
+          dep2[ksk]=dep2[i];
+          ksk=ksk+1;//距離データを正しく持つ線のみを取得
         }
     }
     std::cout <<"テスト:Depthデータが取得可能な線の個数ksk="<<ksk<<std::endl;
+    //------------------------------------------------------------------------------------------
 
     double lines_NNM[lines_fld.size()][4],lines_NNM2[lines_fld.size()][4],lines_NNM_lc[lines_fld.size()],lines_NNM_thetal[lines_fld.size()];
     double lines3[lines_fld.size()][4],lines3_dep[lines_fld.size()][2],lines3_theta[lines_fld.size()];//抽出されたナナメの線以外
@@ -523,9 +522,12 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     double NNM_L[lines_fld.size()],tempx,tempy;//縦線の長さ
     double NNM_line[lines_fld.size()][4];//縦線結合後
     int nnmno=0;//縦線結合後個数
+
     //ナナメの線の抽出を行う-----------------------------------------------------------------------------------
     for(int i=0; i<ksk; i++){
 	    //(ほぼ垂直の場合は無視)
+      //ここでは斜めの線と斜めではない線に分類分けを行なっている-------------------------------------------------
+      //lines3=斜めではない線,lines_NNM=斜めの線
 	    if ( abs(lines2[i][0]-lines2[i][2]) < 10 || abs(lines2[i][1]-lines2[i][3]) < 10){ //check if almost vertical
             lines3[lines3_count][0]=lines2[i][0];//ナナメの線以外を抽出する
             lines3[lines3_count][1]=lines2[i][1];
@@ -538,40 +540,41 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
             //FLD抽出線のy軸との角度を求める
             lines3_theta[lines3_count]=M_PI-atan2((lines3[lines3_count][2]-lines3[lines3_count][0]),(lines3[lines3_count][3]-lines3[lines3_count][1]));
             //std::cout <<"FLDの線の傾きlines3_theta["<<lines3_count<<"]("<<lines3_theta[lines3_count]<<")"<< std::endl;
-
             lines3_count=lines3_count+1;//ナナメの線以外を線を数える
-			continue;
-        }
-		//(短い線を無視する (x1-x2)^2 + (y2-y1)^2 < minlength)
-		if( ((lines2[i][0]-lines2[i][2])*(lines2[i][0]-lines2[i][2]) +(lines2[i][1]-lines2[i][3])*(lines2[i][1]-lines2[i][3])) < minlength){
-			continue;
-        }   
-        lines_NNM[lines_NNM_count][0]=lines2[i][0];//ナナメの線のみを抽出する
-        lines_NNM[lines_NNM_count][1]=lines2[i][1];
-        lines_NNM[lines_NNM_count][2]=lines2[i][2];
-        lines_NNM[lines_NNM_count][3]=lines2[i][3];
+			  continue;
+      }
+		  //(短い線を無視する (x1-x2)^2 + (y2-y1)^2 < minlength)
+		  if( ((lines2[i][0]-lines2[i][2])*(lines2[i][0]-lines2[i][2]) +(lines2[i][1]-lines2[i][3])*(lines2[i][1]-lines2[i][3])) < minlength){
+		  	continue;
+      }   
+      //-------------------------------------------------------------------------------------------------------------
+      lines_NNM[lines_NNM_count][0]=lines2[i][0];//lines_NNM抽出した斜めの線
+      lines_NNM[lines_NNM_count][1]=lines2[i][1];
+      lines_NNM[lines_NNM_count][2]=lines2[i][2];
+      lines_NNM[lines_NNM_count][3]=lines2[i][3];
 
-        cv::line(img_line2,cv::Point(lines_NNM[lines_NNM_count][0],lines_NNM[lines_NNM_count][1]),cv::Point(lines_NNM[lines_NNM_count][2],lines_NNM[lines_NNM_count][3]),cv::Scalar(0,0,255), 2, cv::LINE_AA); 
-        cv::line(img_line4,cv::Point(lines_NNM[lines_NNM_count][0],lines_NNM[lines_NNM_count][1]),cv::Point(lines_NNM[lines_NNM_count][2],lines_NNM[lines_NNM_count][3]),cv::Scalar(0,0,255), 2, cv::LINE_AA); 
-        cv::line(img_dst,cv::Point(lines_NNM[lines_NNM_count][0],lines_NNM[lines_NNM_count][1]),cv::Point(lines_NNM[lines_NNM_count][2],lines_NNM[lines_NNM_count][3]),cv::Scalar(0,255,0), 4, cv::LINE_AA); 
+       cv::line(img_line2,cv::Point(lines_NNM[lines_NNM_count][0],lines_NNM[lines_NNM_count][1]),cv::Point(lines_NNM[lines_NNM_count][2],lines_NNM[lines_NNM_count][3]),cv::Scalar(0,0,255), 2, cv::LINE_AA); 
+       //cv::line(img_line4,cv::Point(lines_NNM[lines_NNM_count][0],lines_NNM[lines_NNM_count][1]),cv::Point(lines_NNM[lines_NNM_count][2],lines_NNM[lines_NNM_count][3]),cv::Scalar(0,0,255), 2, cv::LINE_AA); 
+       cv::line(img_dst,cv::Point(lines_NNM[lines_NNM_count][0],lines_NNM[lines_NNM_count][1]),cv::Point(lines_NNM[lines_NNM_count][2],lines_NNM[lines_NNM_count][3]),cv::Scalar(0,255,0), 4, cv::LINE_AA); 
 
-        //座標から一次関数を引く関数
-        lines_NNM_thetal[lines_NNM_count]=(M_PI/2)-(M_PI-atan2((lines_NNM[lines_NNM_count][2]-lines_NNM[lines_NNM_count][0]),(lines_NNM[lines_NNM_count][3]-lines_NNM[lines_NNM_count][1])));
-        lines_NNM_lc[lines_NNM_count]=(lines_NNM[lines_NNM_count][2]-lines_NNM[lines_NNM_count][0])*(lines_NNM[lines_NNM_count][2]-lines_NNM[lines_NNM_count][0])+(lines_NNM[lines_NNM_count][3]-lines_NNM[lines_NNM_count][1])*(lines_NNM[lines_NNM_count][3]-lines_NNM[lines_NNM_count][1]);
-        lines_NNM2[lines_NNM_count][0]=lines_NNM[lines_NNM_count][0]+(cos(-lines_NNM_thetal[lines_NNM_count])*sqrt(lines_NNM_lc[lines_NNM_count]))*1000;//X1座標
-        lines_NNM2[lines_NNM_count][1]=lines_NNM[lines_NNM_count][1]+(sin(-lines_NNM_thetal[lines_NNM_count])*sqrt(lines_NNM_lc[lines_NNM_count]))*1000;//Y1座標
-        lines_NNM2[lines_NNM_count][2]=lines_NNM[lines_NNM_count][0]+(cos(-lines_NNM_thetal[lines_NNM_count])*sqrt(lines_NNM_lc[lines_NNM_count]))*-1000;//X2座標
-        lines_NNM2[lines_NNM_count][3]=lines_NNM[lines_NNM_count][1]+(sin(-lines_NNM_thetal[lines_NNM_count])*sqrt(lines_NNM_lc[lines_NNM_count]))*-1000;//Y2座標
+      //座標から一次関数を引く関数
+      lines_NNM_thetal[lines_NNM_count]=(M_PI/2)-(M_PI-atan2((lines_NNM[lines_NNM_count][2]-lines_NNM[lines_NNM_count][0]),(lines_NNM[lines_NNM_count][3]-lines_NNM[lines_NNM_count][1])));
+      lines_NNM_lc[lines_NNM_count]=(lines_NNM[lines_NNM_count][2]-lines_NNM[lines_NNM_count][0])*(lines_NNM[lines_NNM_count][2]-lines_NNM[lines_NNM_count][0])+(lines_NNM[lines_NNM_count][3]-lines_NNM[lines_NNM_count][1])*(lines_NNM[lines_NNM_count][3]-lines_NNM[lines_NNM_count][1]);
+      lines_NNM2[lines_NNM_count][0]=lines_NNM[lines_NNM_count][0]+(cos(-lines_NNM_thetal[lines_NNM_count])*sqrt(lines_NNM_lc[lines_NNM_count]))*1000;//X1座標
+      lines_NNM2[lines_NNM_count][1]=lines_NNM[lines_NNM_count][1]+(sin(-lines_NNM_thetal[lines_NNM_count])*sqrt(lines_NNM_lc[lines_NNM_count]))*1000;//Y1座標
+      lines_NNM2[lines_NNM_count][2]=lines_NNM[lines_NNM_count][0]+(cos(-lines_NNM_thetal[lines_NNM_count])*sqrt(lines_NNM_lc[lines_NNM_count]))*-1000;//X2座標
+      lines_NNM2[lines_NNM_count][3]=lines_NNM[lines_NNM_count][1]+(sin(-lines_NNM_thetal[lines_NNM_count])*sqrt(lines_NNM_lc[lines_NNM_count]))*-1000;//Y2座標
 
-        cv::line(img_line2,cv::Point(lines_NNM2[lines_NNM_count][0],lines_NNM2[lines_NNM_count][1]),cv::Point(lines_NNM2[lines_NNM_count][2],lines_NNM2[lines_NNM_count][3]),cv::Scalar(0,255,0), 1, cv::LINE_AA);
-        cv::line(img_line4,cv::Point(lines_NNM2[lines_NNM_count][0],lines_NNM2[lines_NNM_count][1]),cv::Point(lines_NNM2[lines_NNM_count][2],lines_NNM2[lines_NNM_count][3]),cv::Scalar(0,255,0), 1, cv::LINE_AA);
-        cv::line(img_FLD_TY,cv::Point(lines_NNM2[lines_NNM_count][0],lines_NNM2[lines_NNM_count][1]),cv::Point(lines_NNM2[lines_NNM_count][2],lines_NNM2[lines_NNM_count][3]),cv::Scalar(0,255,0), 1, cv::LINE_AA);
-        cv::line(img_dst,cv::Point(lines_NNM2[lines_NNM_count][0],lines_NNM2[lines_NNM_count][1]),cv::Point(lines_NNM2[lines_NNM_count][2],lines_NNM2[lines_NNM_count][3]),cv::Scalar(0,255,0), 1, cv::LINE_AA);
-        NNM_CHK[lines_NNM_count]=0;//斜め線判別要素初期化（斜め線の結合に使用)
-        lines_NNM_count=lines_NNM_count+1;//ナナメの線の数をカウント
+      cv::line(img_line2,cv::Point(lines_NNM2[lines_NNM_count][0],lines_NNM2[lines_NNM_count][1]),cv::Point(lines_NNM2[lines_NNM_count][2],lines_NNM2[lines_NNM_count][3]),cv::Scalar(0,255,0), 1, cv::LINE_AA);
+      cv::line(img_line4,cv::Point(lines_NNM2[lines_NNM_count][0],lines_NNM2[lines_NNM_count][1]),cv::Point(lines_NNM2[lines_NNM_count][2],lines_NNM2[lines_NNM_count][3]),cv::Scalar(0,255,0), 1, cv::LINE_AA);
+      cv::line(img_FLD_TY,cv::Point(lines_NNM2[lines_NNM_count][0],lines_NNM2[lines_NNM_count][1]),cv::Point(lines_NNM2[lines_NNM_count][2],lines_NNM2[lines_NNM_count][3]),cv::Scalar(0,255,0), 1, cv::LINE_AA);
+      cv::line(img_dst,cv::Point(lines_NNM2[lines_NNM_count][0],lines_NNM2[lines_NNM_count][1]),cv::Point(lines_NNM2[lines_NNM_count][2],lines_NNM2[lines_NNM_count][3]),cv::Scalar(0,255,0), 1, cv::LINE_AA);
+      NNM_CHK[lines_NNM_count]=0;//斜め線判別要素初期化（斜め線の結合に使用)
+      lines_NNM_count=lines_NNM_count+1;//ナナメの線の数をカウント
 	}//------------------------------------------------------------------------------------------------------------------------(ナナメ線抽出)
 
-    //線のグループ化-----------------------------------------------------------------------------------------------------------
+  //以下の処理は今回のシステムでは使用していないがもし今後斜めの線を使用する場合は下記の動作が役に立つと思う
+  //斜め線のグループ化-----------------------------------------------------------------------------------------------------------
     for (int i=0; i<lines_NNM_count; ++i) {
         //lines_NNM[i][1]の位置を上にする
         if(lines_NNM[i][1]>lines_NNM[i][3]){
@@ -633,8 +636,11 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     }
     //std::cout <<"縦線のクラスタ数(まとめ前)lines_NNM_count="<<lines_NNM_count<< std::endl;
     //std::cout <<"縦線の合計個数(まとめ後)tateno="<<nnmno<< std::endl;
-    //------------------------------------------------------------------------------------------------------------------------------- 
+    //-------------------------------------------------------------------------------------------------------------------------------斜めの線終了
 
+
+
+    //縦線と横線の処理---------------------------------------------------------------------------------------------------------
     //thetaの数値を小さいにソート
     double tmp=0,tmp1x=0,tmp1y=0,tmp2x=0,tmp2y=0,tmpdep1=0,tmpdep2=0,tmp3=0;
     int yokot,tatet,p,yokoyouso,tateyouso;
@@ -659,6 +665,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     
     yokot=0,tatet=0,p=0,yokoyouso=0,tateyouso=0;
 
+    //縦線と横線の分類分け----------------------------------------------------------------------------------------------------------------
     for (int j=0; j< lines3_count; ++j) {
         lines3X=abs(lines3[j][0]-lines3[j][2]);//傾きを調べる（x成分)
         lines3Y=abs(lines3[j][1]-lines3[j][3]);//傾きを調べる（y成分)
@@ -741,6 +748,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
             }
         }
     }
+    //----------------------------------------------------------------------------------------------------------------------------------------
 
     //ここの並び替え上の並び替えとまとめられそう（先に範囲を狭めてから並び替えして分類する感じにしたらできそう）
     //今は並び替えして分類して範囲狭めて再び並び替えしてる
@@ -804,7 +812,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         }
     }
 
-    //クラスタリング-----------------------------------------------------------------------------------------------------------------------
+    //縦線のクラスタリング-----------------------------------------------------------------------------------------------------------------------
     //タテ線の平行線のクラスタリング(clusRがクラスタリング半径,clusCT:クラスタ数,Clust[]:クラスタ内の個数)
     //最も個数の多い並行線クラスタを各線の並行線とする
     //clusR=0.15,clusCT=0,Average_tate_theta=0;
@@ -847,8 +855,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                         tateclust[clusCT][clust[clusCT]][3]=tatelines3[j][3];//(y成分)
                         tateclust[clusCT][clust[clusCT]][4]=tatelines3[j][4];//角度
 
-                        cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
-                        cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
+                        //cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
+                        //cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
                         clust[clusCT]=clust[clusCT]+1;//クラスタの内部個数更新
                     }
                     //クラスタリング範囲外
@@ -861,8 +869,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                         tateclust[clusCT][clust[clusCT]][3]=tatelines3[j][3];//(y成分)
                         tateclust[clusCT][clust[clusCT]][4]=tatelines3[j][4];//角度
 
-                        cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
-                        cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
+                        //cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
+                        //cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
                         MAXT=clusCT;
                         clusCT=clusCT+1;//クラスタ更新
                     }
@@ -880,8 +888,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                         tateclust[clusCT][clust[clusCT]][3]=tatelines3[j][3];//(y成分)
                         tateclust[clusCT][clust[clusCT]][4]=tatelines3[j][4];//角度
 
-                        cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
-                        cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
+                        //cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
+                        //cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
                         clust[clusCT]=clust[clusCT]+1;//クラスタの内部個数更新
                     }
                     //後方クラスタリング半径範囲外
@@ -894,8 +902,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                         tateclust[clusCT][clust[clusCT]][3]=tatelines3[j][3];//(y成分)
                         tateclust[clusCT][clust[clusCT]][4]=tatelines3[j][4];//角度
 
-                        cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
-                        cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
+                        //cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
+                        //cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
                         clusCT=clusCT+1;//クラスタ更新
                     }
                 }
@@ -909,8 +917,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                     tateclust[clusCT][clust[clusCT]][3]=tatelines3[j][3];//(y成分)
                     tateclust[clusCT][clust[clusCT]][4]=tatelines3[j][4];//角度
 
-                    cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
-                    cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
+                    //cv::line(img_line4,cv::Point(tateclust[clusCT][clust[clusCT]][0],tateclust[clusCT][clust[clusCT]][1]),
+                    //cv::Point(tateclust[clusCT][clust[clusCT]][2],tateclust[clusCT][clust[clusCT]][3]),cv::Scalar(0,5*clusCT,255), 3, cv::LINE_AA);
                     //std::cout <<"最終:最大クラスタMAXT=clusCT="<<MAXT<<",最大クラスタの内部個数clust[MAXT]="<<clust[MAXT]<< std::endl;
                 }
                 if(clust[clusCT]>=clust[MAXT]){ MAXT=clusCT; }//最大クラスタをキープする
@@ -1056,7 +1064,6 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         //-------------------------------------------------------------------------------------------------------------------------------
         tate_point_curr.resize(1000);//配列初期設定(縦線の中点座標)
 
-        int tateno2=0;
         //一次関数を描写するプログラム
         for (int j=0; j<tateno; ++j) {
             //std::cout <<"j="<< j<< std::endl;
@@ -1076,6 +1083,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
             cv::line(img_tate,cv::Point(tatel[j][0],tatel[j][1]),cv::Point(tatel[j][2],tatel[j][3]),cv::Scalar(0,0,255), 1, cv::LINE_AA);
             cv::line(img_dst2,cv::Point(TATE_line[j][0],TATE_line[j][1]),cv::Point(TATE_line[j][2],TATE_line[j][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);
             cv::line(img_tate,cv::Point(TATE_line[j][0],TATE_line[j][1]),cv::Point(TATE_line[j][2],TATE_line[j][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);
+            cv::line(img_line4,cv::Point(TATE_line[j][0],TATE_line[j][1]),cv::Point(TATE_line[j][2],TATE_line[j][3]),cv::Scalar(0,0,255), 4, cv::LINE_AA);
 
             datat[j]=TATE_line[clust[j]][4];
             //最大クラスタ内の平均角度を求める
@@ -1085,17 +1093,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
             tate_point_curr[j].x=(TATE_line[j][0]+TATE_line[j][2])/2;
             tate_point_curr[j].y=(TATE_line[j][1]+TATE_line[j][3])/2;
 	        cv::circle(img_dst2, cv::Point(tate_point_curr[j]), 3, Scalar(0,255,255),  -1, cv::LINE_AA);
-
-            //tate_point_curr[tateno2].x=TATE_line[j][0];
-            //tate_point_curr[tateno2].y=TATE_line[j][1];
-            //tate_point_curr[tateno2+1].x=TATE_line[j][2];
-            //tate_point_curr[tateno2+1].y=TATE_line[j][3];
-	        //cv::circle(img_dst2, cv::Point(tate_point_curr[tateno2]), 3, Scalar(0,255,255),  -1, cv::LINE_AA);
-	        //cv::circle(img_dst2, cv::Point(tate_point_curr[tateno2+1]), 3, Scalar(0,255,255),  -1, cv::LINE_AA);
-            //tateno2=tateno2+2;
         }
         tate_point_curr.resize(tateno);//リサイズ(縦線の中点座標)
-        //tate_point_curr.resize(tateno2);//リサイズ(縦線の中点座標)
 
         //最大クラスタの要素数が１つだけの時を考慮
         if(clust[MAXT]>1){Average_tate_theta=Average_tate_theta/(clust[MAXT]-1);}//最大クラスタの要素が２つ以上なら通常の平均計算
@@ -1106,7 +1105,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         //cv::line(img_graph,cv::Point(100,380),cv::Point(100-100*sin(Average_tate_theta/(clust[MAXT]-1)),380+100*cos(Average_tate_theta/(clust[MAXT]-1))),cv::Scalar(0,100,255), 3, cv::LINE_AA);
         //std::cout <<"最大クラスタMAXT=clusCT["<<MAXT<<"]内の平均角度="<<Average_tate_theta/(clust[MAXT]-1)<<"\n"<< std::endl;
 
-        //縦線の法線ベクトルを求める-----------------------------------------
+        //縦線の法線ベクトルを求める(未使用)-----------------------------------------
          MatrixXd R(2,2);
          R(0,0)=cos(M_PI/2);
          R(0,1)=-sin(M_PI/2);
@@ -1138,10 +1137,12 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         //ただしその比較値がある値以上だった場合はヨコ線の方向は更新せず前ステップでのヨコ線の方向を使う。
 
         //縦線が検出されなかった場合もまた同様に縦線の方向は前ステップでの方向を利用する
+        
     }
 
     std::cout <<"\n"<< std::endl;
 
+    //横線のクラスタリング(未使用)--------------------------------------------------------------------------------------------------------
     //ヨコ線の平行線のクラスタリング(clusRがクラスタリング半径,clusCY:クラスタ数,Clusy[]:クラスタ内の個数)
     //最も個数の多い並行線クラスタを各線の並行線とする
     clusR=0.15,clusCY=0;
@@ -1184,8 +1185,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                         yokoclusy[clusCY][clusy[clusCY]][2]=yokolines3[j][2];//(x成分)
                         yokoclusy[clusCY][clusy[clusCY]][3]=yokolines3[j][3];//(y成分)
                         yokoclusy[clusCY][clusy[clusCY]][4]=yokolines3[j][4];// 角度
-                        cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
-                        cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
+                        //cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
+                        //cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
 
                         Average_yoko_theta[clusCY]=yokoclusy[clusCY][clusy[clusCY]][4];//角度の平均を求めるために角度を足す(初回動作)
                         clusy[clusCY]=clusy[clusCY]+1;//クラスタの内部個数更新
@@ -1200,8 +1201,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                         yokoclusy[clusCY][clusy[clusCY]][3]=yokolines3[j][3];//(y成分)
                         yokoclusy[clusCY][clusy[clusCY]][4]=yokolines3[j][4];//角度
                         
-                        cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
-                        cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
+                        //cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
+                        //cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
                         MAXY=clusCY;
 
                         Average_yoko_theta[clusCY]=yokoclusy[clusCY][clusy[clusCY]][4];//角度の平均を求める(初回動作クラスタリング範囲外なのでデータが１つしかない)
@@ -1225,8 +1226,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                         yokoclusy[clusCY][clusy[clusCY]][3]=yokolines3[j][3];//(y成分)
                         yokoclusy[clusCY][clusy[clusCY]][4]=yokolines3[j][4];//角度
 
-                        cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
-                        cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
+                        //cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
+                        //cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
 
                         Average_yoko_theta[clusCY]=Average_yoko_theta[clusCY]+yokoclusy[clusCY][clusy[clusCY]][4];//角度の平均を求めるために角度を足す
                         clusy[clusCY]=clusy[clusCY]+1;//クラスタの内部個数更新
@@ -1241,8 +1242,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                         yokoclusy[clusCY][clusy[clusCY]][3]=yokolines3[j][3];//(y成分)
                         yokoclusy[clusCY][clusy[clusCY]][4]=yokolines3[j][4];//角度
 
-                        cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
-                        cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
+                        //cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
+                        //cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
 
                         Average_yoko_theta[clusCY]=Average_yoko_theta[clusCY]+yokoclusy[clusCY][clusy[clusCY]][4];//角度の平均を求めるために角度を足す
                         
@@ -1274,8 +1275,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                     yokoclusy[clusCY][clusy[clusCY]][3]=yokolines3[j][3];//(y成分)
                     yokoclusy[clusCY][clusy[clusCY]][4]=yokolines3[j][4];//角度
 
-                    cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
-                    cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
+                    //cv::line(img_line4,cv::Point(yokoclusy[clusCY][clusy[clusCY]][0],yokoclusy[clusCY][clusy[clusCY]][1]),
+                    //cv::Point(yokoclusy[clusCY][clusy[clusCY]][2],yokoclusy[clusCY][clusy[clusCY]][3]),cv::Scalar(255,5*clusCY,0), 3, cv::LINE_AA);
 
                     Average_yoko_theta[clusCY]=Average_yoko_theta[clusCY]+yokoclusy[clusCY][clusy[clusCY]][4];//角度の平均を求めるために角度を足す
 
@@ -1333,13 +1334,16 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
                 cv::line(img_line4,cv::Point(yokol[j][0],yokol[j][1]),cv::Point(yokol[j][2],yokol[j][3]),cv::Scalar(255,0,0), 1, cv::LINE_AA);
                 cv::line(img_dst,cv::Point(yokol[j][0],yokol[j][1]),cv::Point(yokol[j][2],yokol[j][3]),cv::Scalar(255,0,0), 1, cv::LINE_AA);
                 cv::line(img_dst,cv::Point(yokoclusy[YOKO_CLUST][j][0],yokoclusy[YOKO_CLUST][j][1]),
+                cv::Point(yokoclusy[YOKO_CLUST][j][2],yokoclusy[YOKO_CLUST][j][3]),cv::Scalar(255,0,0), 4, cv::LINE_AA);
+                cv::line(img_line4,cv::Point(yokoclusy[YOKO_CLUST][j][0],yokoclusy[YOKO_CLUST][j][1]),
                  cv::Point(yokoclusy[YOKO_CLUST][j][2],yokoclusy[YOKO_CLUST][j][3]),cv::Scalar(255,0,0), 4, cv::LINE_AA);
 
                 datay[j]=yokoclusy[YOKO_CLUST][j][4];
             }
         }
-    }
-    //タテ線とナナメ線の交点を検出する--------------------------------------------------------------------------------------------------
+    }//-------------------------------------------------------------------------------------------------------------------------------------
+
+    /*//タテ線とナナメ線の交点を検出する(未使用)--------------------------------------------------------------------------------------------------
     //縦線の一次関数を求める
     for (int j=0; j<lines_NNM_count; ++j) {
         NNMA[j]=(lines_NNM[j][1]-lines_NNM[j][3])/(lines_NNM[j][0]-lines_NNM[j][2]);
@@ -1358,8 +1362,12 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
             //std::cout <<"縦線とヨコ線の交点["<<j<<"]["<<i<<"]=("<<NNM_TATE_X[j][i]<<","<<NNM_TATE_Y[j][i]<<")"<< std::endl;
             //cv::circle(img_dst,cv::Point(NNM_TATE_X[j][i],NNM_TATE_Y[j][i]),3,Scalar(0,255,255),-1);
         }
-    }
+    }*/
+
     //線検出プログラム終了-----------------------------------------------------------------------------------------------------------------------
+
+
+    //テンプレートマッチング-----------------------------------------------------------------------------------------------------------
     TPCC.resize(1000);//配列初期設定(tate_point_camera_c)
     DTPC_ok=0;
     //テンプレートマッチングプログラム
@@ -1398,7 +1406,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
     reset = false;//if文切り替え
     std::cout <<"初回検出プログラム終了"<< std::endl;
 
-   //ロボット指令-------------------------------------------------------------------
+   //ロボット指令プログラム--------------------------------------------------------------------------------------------
+   //別にここの位置に書く必要はない
     robot_odometry=*msg;
     /*//廊下直進動作----------------------------------------------------------------------------------------------------------------
       std::cout << "X_25=" <<X_25<<",TH_90=" <<TH_90<<",Y_05=" <<Y_05<< std::endl;
@@ -1483,68 +1492,6 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         pub.publish(robot_velocity);    // 速度指令メッセージをパブリッシュ（送信）
       }
 
-      //研究室動作-------------------------------------------------------------------------------------
-      /*std::cout << "X_25=" <<X_25<<",TH_90=" <<TH_90<<",Y_05=" <<Y_05<< std::endl;
-      if(X_25==false&&TH_90==false&&Y_05==false){
-        gettimeofday(&startTimeV1, NULL);// 直進動作開始時刻
-        if(kaisuV1!=0){
-          time_t diffsecV1 = difftime(startTimeV1.tv_sec,endTimeV1.tv_sec);    // 秒数の差分を計算
-          suseconds_t diffsubV1 = startTimeV1.tv_usec - endTimeV1.tv_usec;      // マイクロ秒部分の差分を計算
-          realsecV1 = diffsecV1+diffsubV1*1e-6;                          // 実時間を計算
-          ALLrealsecV1=ALLrealsecV1+realsecV1;
-        }
-        robot_velocity.linear.x  = VX;//(0.1)
-        robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
-        if(Des_RobotX>=LX){X_25=true;}
-        kaisuV1++;
-      }
-      if(X_25==true&&TH_90==false&&Y_05==false){
-        gettimeofday(&startTimeM1, NULL);//回転動作開始時刻
-        if(kaisuM1!=0){
-          time_t diffsecM1 = difftime(startTimeM1.tv_sec,endTimeM1.tv_sec);    // 秒数の差分を計算
-          suseconds_t diffsubM1 = startTimeM1.tv_usec - endTimeM1.tv_usec;      // マイクロ秒部分の差分を計算
-          realsecM1 = diffsecM1+diffsubM1*1e-6;                          // 実時間を計算
-          ALLrealsecM1=ALLrealsecM1+realsecM1;//経過時刻
-        }
-        robot_velocity.linear.x  =  0.0;
-        robot_velocity.angular.z  =  -((THZ-0.1)+(0.0176*ALLrealsecM1+0.11));//(0.5)研究室
-        if(Des_RobotTH<=-3.141592653/omegaZ){//研究室
-          TH_90=true;
-          robot_velocity.linear.x  = 0.0; // 並進速度vの初期化
-          robot_velocity.angular.z = 0.0; // 回転速度ωの初期化}//xが1以上になったら終了
-          pub.publish(robot_velocity);    // 速度指令メッセージをパブリッシュ（送信）
-          usleep(7*100000);//0.5秒ストップ(マイクロ秒)
-        }
-        kaisuM1++;
-      }
-      if(X_25==true&&TH_90==true&&Y_05==false){
-        robot_velocity.linear.x  = VX;//(0.1)
-        robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
-        if(Des_RobotY<=-2.0){Y_05=true;}//研究室
-      }
-      if(X_25==true&&TH_90==true&&Y_05==true){
-          robot_velocity.linear.x  = 0.0; // 並進速度vの初期化
-          robot_velocity.angular.z = 0.0; // 回転速度ωの初期化}//xが1以上になったら終了
-      }
-    pub.publish(robot_velocity);    // 速度指令メッセージをパブリッシュ（送信）
-    if(X_25==false&&TH_90==false&&Y_05==false){
-      robot_velocity.linear.x  = VX;//(0.1)
-      robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
-    }
-    if(X_25==true&&TH_90==false&&Y_05==false){
-      robot_velocity.linear.x  =  0.0;
-      robot_velocity.angular.z  =  -THZ;//(0.5)研究室
-    }
-    if(X_25==true&&TH_90==true&&Y_05==false){
-      robot_velocity.linear.x  = VX;//(0.1)
-      robot_velocity.angular.z = 0.0; // 回転速度の初期化}//xが1以上になったら終了
-    }
-    if(X_25==true&&TH_90==true&&Y_05==true){
-      robot_velocity.linear.x  = 0.0; // 並進速度vの初期化
-      robot_velocity.angular.z = 0.0; // 回転速度ωの初期化}//xが1以上になったら終了
-    }*/
-    std::cout <<"test"<< std::endl;
-
     Act_RobotV=robot_odometry.twist.twist.linear.x+robot_odometry.twist.twist.linear.y;//速度ベクトルの合成
     std::cout << "Act_RobotV=" <<Act_RobotV<< std::endl;
 
@@ -1565,6 +1512,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       I = cv::Mat_<double>::eye(3, 3);//単位行列
       std::cout <<"初期設定"<< std::endl;
     }
+    //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     MTPC.resize(1000);//Matching_Tate_Pixel_Curr=MTPC定義(ここの大きさを超えるとエラーになる)
     //テンプレート範囲予測とテンプレートマッチング----------------------------------------------------------------------
@@ -2691,9 +2639,9 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         Est_RobotY,
         Est_RobotTH);
 
-      //更新ステップ------------------------------------------------------------------
+      //更新ステップ(マーカー)------------------------------------------------------------------
       //更新ステップはランドーマークの数だけ更新を行う
-      for(int i=0;i<markerIds.size();i++){
+      /*for(int i=0;i<markerIds.size();i++){
         std::cout <<"更新ステップ(マーカー)"<< std::endl;
         //観測方程式(信念分布の中心位置から見たLMまでの距離と角度)(理想推定)
         hu = (cv::Mat_<double>(2,1) <<
@@ -2720,13 +2668,10 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
 
         kal_gainX1<<K.at<double>(0,0)<<"\n";
         kal_gainX2<<K.at<double>(0,1)<<"\n";
-        kal_gainX3<<K.at<double>(0,2)<<"\n";
         kal_gainY1<<K.at<double>(1,0)<<"\n";
         kal_gainY2<<K.at<double>(1,1)<<"\n";
-        kal_gainY3<<K.at<double>(1,2)<<"\n";
         kal_gainTH1<<K.at<double>(2,0)<<"\n";
         kal_gainTH2<<K.at<double>(2,1)<<"\n";
-        kal_gainTH3<<K.at<double>(2,2)<<"\n";
         kal_gain_time<<ALLrealsec<<"\n";
 
         //センサー値を反映するための更新式
@@ -2751,11 +2696,12 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         kansoku_Zu2<<Zu[markerIds.at(i)].at<double>(1,0)<<"\n";
         kansoku_hu1<<hu.at<double>(0,0)<<"\n";
         kansoku_hu2<<hu.at<double>(1,0)<<"\n";
-      }
+      }*/
 
-      //更新ステップは特徴点の数だけ更新を行う
+      //更新ステップ(特徴線)------------------------------------------------------------------
+      //更新ステップは特徴線の数だけ更新を行う
       for(int i=0;i<DMT_curr2_ok;i++){
-        std::cout <<"更新ステップ(特徴点)"<< std::endl;
+        std::cout <<"更新ステップ(特徴線)"<< std::endl;
         //観測方程式(信念分布の中心位置から見たLMまでの距離と角度)(理想推定)
         hu = (cv::Mat_<double>(2,1) <<
           sqrt((Est_RobotX-MT_curr2_world[i].z)*(Est_RobotX-MT_curr2_world[i].z) + (Est_RobotY-MT_curr2_world[i].x)*(Est_RobotY-MT_curr2_world[i].x)),
@@ -2780,13 +2726,10 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         K=Cov*Ht.t()*tempK.inv();
         kal_gainX1<<K.at<double>(0,0)<<"\n";
         kal_gainX2<<K.at<double>(0,1)<<"\n";
-        kal_gainX3<<K.at<double>(0,2)<<"\n";
         kal_gainY1<<K.at<double>(1,0)<<"\n";
         kal_gainY2<<K.at<double>(1,1)<<"\n";
-        kal_gainY3<<K.at<double>(1,2)<<"\n";
         kal_gainTH1<<K.at<double>(2,0)<<"\n";
         kal_gainTH2<<K.at<double>(2,1)<<"\n";
-        kal_gainTH3<<K.at<double>(2,2)<<"\n";
         kal_gain_time<<ALLrealsec<<"\n";
 
         //センサー値を反映するための更新式
@@ -2817,8 +2760,7 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
         kansoku_hu2<<hu.at<double>(1,0)<<"\n";
       }
 
-      temp_kosuu<<DMT_curr2_ok<<"\n";
-      temp_time<<ALLrealsec<<"\n";
+
       Est_RobotX=EST_Robot.at<double>(0);
       Est_RobotY=EST_Robot.at<double>(1);
       Est_RobotTH=EST_Robot.at<double>(2);
@@ -3001,31 +2943,31 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
    
     cv::namedWindow(win_src, cv::WINDOW_AUTOSIZE);
     //cv::namedWindow(win_depth, cv::WINDOW_AUTOSIZE);
-    cv::namedWindow(win_dst, cv::WINDOW_AUTOSIZE);
+    //cv::namedWindow(win_dst, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_dst2, cv::WINDOW_AUTOSIZE);
-    //cv::namedWindow(win_fld, cv::WINDOW_AUTOSIZE);
+    cv::namedWindow(win_fld, cv::WINDOW_AUTOSIZE);
     //cv::namedWindow(win_fld_ty, cv::WINDOW_AUTOSIZE);
     //cv::namedWindow(win_fld_t, cv::WINDOW_AUTOSIZE);
     //cv::namedWindow(win_fld_y, cv::WINDOW_AUTOSIZE);
-    cv::namedWindow(win_line2, cv::WINDOW_AUTOSIZE);
+    //cv::namedWindow(win_line2, cv::WINDOW_AUTOSIZE);
     //cv::namedWindow(win_line3, cv::WINDOW_AUTOSIZE);
-    cv::namedWindow(win_line4, cv::WINDOW_AUTOSIZE);
-    cv::namedWindow(win_graph, cv::WINDOW_AUTOSIZE);
+    //cv::namedWindow(win_line4, cv::WINDOW_AUTOSIZE);
+    //cv::namedWindow(win_graph, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(win_tate, cv::WINDOW_AUTOSIZE);
 
    
     cv::imshow(win_src, img_src);
     //cv::imshow(win_depth, img_depth);
-    cv::imshow(win_dst, img_dst);
+    //cv::imshow(win_dst, img_dst);
     cv::imshow(win_dst2, img_dst2);
     cv::imshow(win_fld, img_fld);
     //cv::imshow(win_fld_ty, img_FLD_TY);
     //cv::imshow(win_fld_t, img_FLD_T);
     //cv::imshow(win_fld_y, img_FLD_Y);
-    cv::imshow(win_line2, img_line2);
+    //cv::imshow(win_line2, img_line2);
     //cv::imshow(win_line3, img_line3);
-    cv::imshow(win_line4, img_line4);
-    cv::imshow(win_graph, img_graph);
+    //cv::imshow(win_line4, img_line4);
+    //cv::imshow(win_graph, img_graph);
     cv::imshow(win_tate, img_tate);//縦線関連の表示用
 
     //初回動作時＋検出時
@@ -3054,6 +2996,8 @@ void callback(const nav_msgs::Odometry::ConstPtr& msg,const sensor_msgs::Image::
       cv::swap(MT_curr2_Templ,  MT_prev_Templ);//マッチ座標
     }
 
+    temp_kosuu<<DMT_prev_ok<<"\n";
+    temp_time<<ALLrealsec<<"\n";  
     robot_velocity.linear.x  = 0.0; // 並進速度の初期化
     robot_velocity.angular.z = 0.0; // 回転速度の初期化
     kaisu++;
@@ -3157,16 +3101,22 @@ int main(int argc,char **argv){
     //LX=2.0,VX=0.25,omegaZ=2.0,THZ=0.20,LY=5.0;
 
     //2022-01-08-V2廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
-    //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.00, 0.28, 2.95);//実測値(X:1.57,Y:4.95)
-    //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
-    //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
-    //LX=2.0,VX=0.25,omegaZ=2.0,THZ=0.20,LY=5.0;
+    MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.00, 0.28, 2.95);//実測値(X:1.57,Y:4.95)
+    MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.51, 0.28, 2.85);
+    MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.53, 0.28, 1.08);
+    LX=2.0,VX=0.25,omegaZ=2.0,THZ=0.20,LY=5.0;
 
-    //2022-01-09廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
-    MarkerW[4]= (cv::Mat_<float>(3, 1) <<1.00, 0.28, 3.00);
-    MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.62, 0.28, 2.90);
-    MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.48, 0.28, 2.90);
-    LX=2.5,VX=0.25,omegaZ=2.05,THZ=0.20,LY=5.0;
+    //2022-01-09ゼミ室前廊下(直進2.0m,速度0.25,回転π/2度,回転速度0.20,直進5.0m,速度0.25)廊下回転動作実験
+    //MarkerW[4]= (cv::Mat_<float>(3, 1) <<1.00, 0.28, 3.00);
+    //MarkerW[5]= (cv::Mat_<float>(3, 1) <<2.62, 0.28, 2.90);
+    //MarkerW[6]= (cv::Mat_<float>(3, 1) <<8.48, 0.28, 2.90);
+    //LX=2.5,VX=0.25,omegaZ=2.05,THZ=0.20,LY=5.0;
+
+    
+    //2022-01-22廊下(直進10.0m,速度0.25)直線動作実験(研究室前スタート)
+    //MarkerW[4]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 3.0);//実測値(X:9.67,Y:0.10)
+    //MarkerW[5]= (cv::Mat_<float>(3, 1) <<0.905, 0.28, 10.57);
+    //LX=10.0,VX=0.25,omegaZ=0,THZ=0,LY=0;
 
 	ros::spin();//トピック更新待機
 			

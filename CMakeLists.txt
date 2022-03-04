@@ -1821,3 +1821,16 @@ add_executable(FLD_marker_test1 src/test/Experiment/FLD_marker_test1.cpp)
 add_dependencies(FLD_marker_test1 ${PROJECT_NAME}_gencfg)
 add_dependencies(FLD_marker_test1 ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(FLD_marker_test1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#20220120 テンプレートマッチングの性能評価プログラム(特徴線)(予測範囲なし)
+add_executable(template_line_test_2 src/test/Experiment/template_line_test_2.cpp)
+add_dependencies(template_line_test_2 ${PROJECT_NAME}_gencfg)
+add_dependencies(template_line_test_2 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(template_line_test_2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+
+#2022-01-27 rosbag用(FLD_marker2_2_6→FLD_marker2_2_7)
+add_executable(FLD_marker2_2_7 src/FLD/FLD_marker2_2_7.cpp)
+add_dependencies(FLD_marker2_2_7 ${PROJECT_NAME}_gencfg)
+add_dependencies(FLD_marker2_2_7 ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(FLD_marker2_2_7 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
